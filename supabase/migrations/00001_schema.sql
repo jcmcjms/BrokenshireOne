@@ -390,7 +390,7 @@ SELECT r.id, p.id FROM roles r, permissions p
 WHERE r.name = 'student'
 AND p.code IN ('menu.view', 'orders.view_own');
 
--- Users (placeholder bcrypt hashes for demo purposes)
+-- Users (real bcrypt hashes — passwords below)
 INSERT INTO users (name, email, password_hash, role_id, monthly_credit_limit) VALUES
     ('Admin User', 'admin@canteen.com', '$2b$10$Dlrv6vUMjgV5.jHnnNg.GOAPHJsgf3SuKj7s4Xf/xgzA/QPxY0Hri', (SELECT id FROM roles WHERE name = 'admin'), 0),
     ('Manager User', 'manager@canteen.com', '$2b$10$/FEbxKDtJ/0OQIvkbtwl7OAUPqnuiSvJPZOOfLmaBXjb.FK9VvrzS', (SELECT id FROM roles WHERE name = 'manager'), 0),
