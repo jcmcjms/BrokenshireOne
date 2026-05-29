@@ -1,0 +1,95 @@
+import { NextRequest, NextResponse } from 'next/server';
+import { getSession } from '@/lib/auth/session';
+import { supabase } from '@/lib/supabase/client';
+import { getMenuItems } from '@/lib/supabase/queries';
+import type { ApiResponse } from '@/types';
+
+export async function GET(request: NextRequest) {
+  try {
+    const session = await getSession();
+    if (!session) {
+      return NextResponse.json<ApiResponse>(
+        { success: false, error: 'Not authenticated' },
+        { status: 401 },
+      );
+    }
+
+    if (!session.permissions.includes('menu.view') && !session.permissions.includes('menu.manage')) {
+      return NextResponse.json<ApiResponse>(
+        { success: false, error: 'Forbidden' },
+        { status: 403 },
+      );
+    }
+
+    const { searchParams } = new URL(request.url);
+    const categoryId = searchParams.get('category_id') ?? undefined;
+
+    const items = await getMenuItems(categoryId);
+
+    const data = (items as any[]).map((item: any) => ({
+      ...item,
+      category_name: item.menu_categories?.name ?? null,
+      menu_categories: undefined,
+    }));
+
+    return NextResponse.json<ApiResponse>({ success: true, data });
+  } catch (error) {
+    return NextResponse.json<ApiResponse>(
+      { success: false, error: 'Failed to fetch menu items' },
+      { status: 500 },
+    );
+  }
+}
+
+export async function POST(request: NextRequest) {
+  try {
+    const session = await getSession();
+    if (!session) {
+      return NextResponse.json<ApiResponse>(
+        { success: false, error: 'Not authenticated' },
+        { status: 401 },
+      );
+    }
+
+    if (!session.permissions.includes('menu.manage')) {
+      return NextResponse.json<ApiResponse>(
+        { success: false, error: 'Forbidden' },
+        { status: 403 },
+      );
+    }
+
+    const { category_id, name, description, price, image_url, available } = await request.json();
+
+    if (!category_id || !name || price === undefined) {
+      return NextResponse.json<ApiResponse>(
+        { success: false, error: 'category_id, name, and price are required' },
+        { status: 400 },
+      );
+    }
+
+    const db = supabase.from('menu_items') as any;
+    const { data, error } = await db
+      .insert({
+        category_id,
+        name,
+        description: description ?? '',
+        price,
+        image_url: image_url ?? null,
+        available: available ?? true,
+      })
+      .select()
+      .single();
+
+    if (error) throw error;
+
+    return NextResponse.json<ApiResponse>(
+      { success: true, data },
+      { status: 201 },
+    );
+  } catch (error) {
+    return NextResponse.json<ApiResponse>(
+      { success: false, error: 'Failed to create menu item' },
+      { status: 500 },
+    );
+  }
+}

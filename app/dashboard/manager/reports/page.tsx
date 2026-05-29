@@ -1,0 +1,131 @@
+"use client"
+
+import { useEffect, useState } from "react"
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
+import { Skeleton } from "@/components/ui/skeleton"
+import { Button } from "@/components/ui/button"
+import { CurrencyDollarIcon, ClipboardTextIcon, ShoppingCartIcon, ChartBarIcon } from "@phosphor-icons/react"
+import type { DashboardStats } from "@/types"
+
+export default function ManagerReportsPage() {
+  const [stats, setStats] = useState<DashboardStats | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+
+  useEffect(() => {
+    async function fetchData() {
+      try {
+        const res = await fetch("/api/dashboard/stats")
+        if (!res.ok) throw new Error("Failed to fetch stats")
+        const json = await res.json()
+        setStats(json.data ?? json)
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "An error occurred")
+      } finally {
+        setLoading(false)
+      }
+    }
+    fetchData()
+  }, [])
+
+  const currentMonth = new Date().toLocaleString("default", { month: "long", year: "numeric" })
+
+  const summaryCards = [
+    {
+      title: "Total Revenue",
+      value: stats?.total_revenue_today,
+      prefix: "$",
+      subtitle: "This month",
+      icon: CurrencyDollarIcon,
+    },
+    {
+      title: "Total Orders",
+      value: stats?.total_orders_today,
+      subtitle: "This month",
+      icon: ClipboardTextIcon,
+    },
+    {
+      title: "Avg Order Value",
+      value: stats?.total_orders_today && stats?.total_revenue_today
+        ? (stats.total_revenue_today / stats.total_orders_today).toFixed(2)
+        : "0.00",
+      prefix: "$",
+      subtitle: "Today",
+      icon: ShoppingCartIcon,
+    },
+  ]
+
+  if (error) {
+    return (
+      <div className="flex flex-col items-center justify-center gap-2 py-16">
+        <p className="text-destructive text-xs">Failed to load reports</p>
+        <p className="text-muted-foreground text-xs">{error}</p>
+        <Button variant="outline" size="sm" onClick={() => window.location.reload()}>Retry</Button>
+      </div>
+    )
+  }
+
+  return (
+    <div className="flex flex-col gap-6 p-6">
+      <div>
+        <h1 className="font-heading text-sm font-medium">Reports</h1>
+        <p className="text-xs text-muted-foreground mt-0.5">Summary and analytics for {currentMonth}</p>
+      </div>
+
+      <div className="grid grid-cols-3 gap-4">
+        {summaryCards.map((card) => (
+          <Card key={card.title}>
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <CardTitle>{card.title}</CardTitle>
+                <card.icon className="size-4 text-muted-foreground" />
+              </div>
+              <CardDescription>{card.subtitle}</CardDescription>
+            </CardHeader>
+            <CardContent>
+              {loading ? (
+                <Skeleton className="h-6 w-20" />
+              ) : (
+                <p className="font-heading text-lg font-medium">
+                  {card.prefix}{card.value ?? "—"}
+                </p>
+              )}
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <Card>
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <CardTitle>Monthly Revenue Trend</CardTitle>
+              <ChartBarIcon className="size-4 text-muted-foreground" />
+            </div>
+            <CardDescription>Chart coming soon</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="flex items-center justify-center h-48 bg-muted/50 text-muted-foreground text-xs">
+              Revenue chart will be displayed here
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <CardTitle>Orders by Category</CardTitle>
+              <ChartBarIcon className="size-4 text-muted-foreground" />
+            </div>
+            <CardDescription>Chart coming soon</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="flex items-center justify-center h-48 bg-muted/50 text-muted-foreground text-xs">
+              Category breakdown chart will be displayed here
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    </div>
+  )
+}

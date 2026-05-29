@@ -1,0 +1,275 @@
+"use client"
+
+import { useEffect, useState, useCallback } from "react"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogTrigger, DialogClose } from "@/components/ui/dialog"
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs"
+import { Skeleton } from "@/components/ui/skeleton"
+import { toast } from "sonner"
+import { PlusIcon, PencilIcon, TrashIcon, ImageIcon } from "@phosphor-icons/react"
+import type { MenuItem, MenuCategory } from "@/types"
+
+export default function ManagerMenuPage() {
+  const [items, setItems] = useState<MenuItem[]>([])
+  const [categories, setCategories] = useState<MenuCategory[]>([])
+  const [loading, setLoading] = useState(true)
+  const [activeCategory, setActiveCategory] = useState<string>("all")
+  const [itemDialogOpen, setItemDialogOpen] = useState(false)
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
+  const [editingItem, setEditingItem] = useState<MenuItem | null>(null)
+  const [deletingItem, setDeletingItem] = useState<MenuItem | null>(null)
+  const [saving, setSaving] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
+  const emptyForm = { name: "", category_id: "", price: "", description: "", available: true }
+  const [form, setForm] = useState(emptyForm)
+
+  const fetchData = useCallback(async () => {
+    try {
+      const [itemsRes, catsRes] = await Promise.all([
+        fetch("/api/menu/items"),
+        fetch("/api/menu/categories"),
+      ])
+      if (!itemsRes.ok) throw new Error("Failed to fetch menu items")
+      if (!catsRes.ok) throw new Error("Failed to fetch categories")
+      const itemsData = await itemsRes.json()
+      const catsData = await catsRes.json()
+      setItems(itemsData.data ?? itemsData)
+      setCategories(catsData.data ?? catsData)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "An error occurred")
+    } finally {
+      setLoading(false)
+    }
+  }, [])
+
+  useEffect(() => { fetchData() }, [fetchData])
+
+  const openAddDialog = () => {
+    setEditingItem(null)
+    setForm(emptyForm)
+    setItemDialogOpen(true)
+  }
+
+  const openEditDialog = (item: MenuItem) => {
+    setEditingItem(item)
+    setForm({
+      name: item.name,
+      category_id: item.category_id,
+      price: item.price.toString(),
+      description: item.description,
+      available: item.available,
+    })
+    setItemDialogOpen(true)
+  }
+
+  const handleSave = async () => {
+    if (!form.name || !form.category_id || !form.price) {
+      toast.error("Please fill in required fields")
+      return
+    }
+    setSaving(true)
+    try {
+      const payload = {
+        name: form.name,
+        category_id: form.category_id,
+        price: parseFloat(form.price),
+        description: form.description,
+        available: form.available,
+      }
+      const res = await fetch(editingItem ? `/api/menu/items/${editingItem.id}` : "/api/menu/items", {
+        method: editingItem ? "PATCH" : "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      })
+      if (!res.ok) throw new Error("Failed to save item")
+      toast.success(editingItem ? "Item updated" : "Item created")
+      setItemDialogOpen(false)
+      fetchData()
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to save")
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const confirmDelete = async () => {
+    if (!deletingItem) return
+    try {
+      const res = await fetch(`/api/menu/items/${deletingItem.id}`, { method: "DELETE" })
+      if (!res.ok) throw new Error("Failed to delete item")
+      toast.success("Item deleted")
+      setDeleteDialogOpen(false)
+      setDeletingItem(null)
+      fetchData()
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to delete")
+    }
+  }
+
+  const filteredItems = activeCategory === "all" ? items : items.filter((i) => i.category_id === activeCategory)
+
+  if (error) {
+    return (
+      <div className="flex flex-col items-center justify-center gap-2 py-16">
+        <p className="text-destructive text-xs">Failed to load menu</p>
+        <p className="text-muted-foreground text-xs">{error}</p>
+        <Button variant="outline" size="sm" onClick={fetchData}>Retry</Button>
+      </div>
+    )
+  }
+
+  return (
+    <div className="flex flex-col gap-6 p-6">
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="font-heading text-sm font-medium">Menu Management</h1>
+          <p className="text-xs text-muted-foreground mt-0.5">Add, edit, and manage menu items</p>
+        </div>
+        <Button size="sm" onClick={openAddDialog}>
+          <PlusIcon className="size-4" />
+          Add Item
+        </Button>
+      </div>
+
+      <Tabs value={activeCategory} onValueChange={setActiveCategory}>
+        <TabsList variant="line">
+          <TabsTrigger value="all">All</TabsTrigger>
+          {categories.map((cat) => (
+            <TabsTrigger key={cat.id} value={cat.id}>{cat.name}</TabsTrigger>
+          ))}
+        </TabsList>
+        <TabsContent value={activeCategory} className="mt-4">
+          {loading ? (
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+              {Array.from({ length: 8 }).map((_, i) => (
+                <Card key={i}>
+                  <CardContent className="p-0">
+                    <Skeleton className="h-32 w-full" />
+                    <div className="p-3 flex flex-col gap-2">
+                      <Skeleton className="h-4 w-24" />
+                      <Skeleton className="h-3 w-16" />
+                      <Skeleton className="h-4 w-12" />
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          ) : (
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+              {filteredItems.map((item) => (
+                <Card key={item.id}>
+                  <CardContent className="p-0">
+                    <div className="flex items-center justify-center h-32 bg-muted">
+                      {item.image_url ? (
+                        <img src={item.image_url} alt={item.name} className="h-full w-full object-cover" />
+                      ) : (
+                        <ImageIcon className="size-8 text-muted-foreground/40" />
+                      )}
+                    </div>
+                    <div className="p-3 flex flex-col gap-1.5">
+                      <div className="flex items-start justify-between gap-2">
+                        <p className="text-xs font-medium leading-tight">{item.name}</p>
+                        <div className="flex gap-1 shrink-0">
+                          <Button variant="ghost" size="icon-xs" onClick={() => openEditDialog(item)}>
+                            <PencilIcon className="size-3" />
+                          </Button>
+                          <Button variant="ghost" size="icon-xs" onClick={() => { setDeletingItem(item); setDeleteDialogOpen(true) }}>
+                            <TrashIcon className="size-3" />
+                          </Button>
+                        </div>
+                      </div>
+                      <Badge variant="outline" className="w-fit">{item.category_name ?? categories.find(c => c.id === item.category_id)?.name}</Badge>
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs font-medium">${item.price.toFixed(2)}</span>
+                        <Badge variant={item.available ? "default" : "secondary"} className="text-[10px]">
+                          {item.available ? "Available" : "Unavailable"}
+                        </Badge>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+              {filteredItems.length === 0 && (
+                <p className="col-span-full text-center text-muted-foreground text-xs py-8">
+                  No items in this category
+                </p>
+              )}
+            </div>
+          )}
+        </TabsContent>
+      </Tabs>
+
+      <Dialog open={itemDialogOpen} onOpenChange={setItemDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{editingItem ? "Edit Item" : "Add Menu Item"}</DialogTitle>
+            <DialogDescription>
+              {editingItem ? "Update the menu item details." : "Fill in the details for the new menu item."}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex flex-col gap-3">
+            <div className="flex flex-col gap-1">
+              <label className="text-xs text-muted-foreground">Name *</label>
+              <Input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder="Item name" />
+            </div>
+            <div className="flex flex-col gap-1">
+              <label className="text-xs text-muted-foreground">Category *</label>
+              <Select value={form.category_id} onValueChange={(v) => setForm({ ...form, category_id: v })}>
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Select category" />
+                </SelectTrigger>
+                <SelectContent>
+                  {categories.map((cat) => (
+                    <SelectItem key={cat.id} value={cat.id}>{cat.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="flex flex-col gap-1">
+              <label className="text-xs text-muted-foreground">Price *</label>
+              <Input value={form.price} onChange={(e) => setForm({ ...form, price: e.target.value })} placeholder="0.00" type="number" step="0.01" />
+            </div>
+            <div className="flex flex-col gap-1">
+              <label className="text-xs text-muted-foreground">Description</label>
+              <Input value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} placeholder="Brief description" />
+            </div>
+            <div className="flex items-center gap-2">
+              <label className="text-xs text-muted-foreground">Available</label>
+              <input type="checkbox" checked={form.available} onChange={(e) => setForm({ ...form, available: e.target.checked })} className="size-3.5" />
+            </div>
+          </div>
+          <DialogFooter>
+            <DialogClose asChild>
+              <Button variant="outline" size="sm">Cancel</Button>
+            </DialogClose>
+            <Button size="sm" onClick={handleSave} disabled={saving}>
+              {saving ? "Saving..." : editingItem ? "Update" : "Create"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Delete Item</DialogTitle>
+            <DialogDescription>
+              Are you sure you want to delete "{deletingItem?.name}"? This action cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <DialogClose asChild>
+              <Button variant="outline" size="sm">Cancel</Button>
+            </DialogClose>
+            <Button variant="destructive" size="sm" onClick={confirmDelete}>Delete</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </div>
+  )
+}
