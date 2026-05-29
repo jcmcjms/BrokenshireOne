@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Skeleton } from "@/components/ui/skeleton"
 import { UsersIcon, ClipboardTextIcon, CurrencyDollarIcon, ShoppingCartIcon, GearIcon, UserListIcon } from "@phosphor-icons/react"
-import { cn } from "@/lib/utils"
+import { cn, formatPrice } from "@/lib/utils"
 import type { DashboardStats, Order } from "@/types"
 
 export default function AdminDashboardPage() {
@@ -137,7 +137,7 @@ export default function AdminDashboardPage() {
                     <TableRow key={order.id}>
                       <TableCell className="font-medium">{order.order_number}</TableCell>
                       <TableCell>{order.user_name ?? "—"}</TableCell>
-                      <TableCell>${order.total.toFixed(2)}</TableCell>
+                      <TableCell>{formatPrice(order.total)}</TableCell>
                       <TableCell>
                         <Badge variant={statusVariant[order.status]}>{order.status}</Badge>
                       </TableCell>

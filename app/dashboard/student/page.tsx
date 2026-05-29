@@ -7,6 +7,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Skeleton } from "@/components/ui/skeleton"
 import { Button } from "@/components/ui/button"
 import { UserIcon, ClipboardTextIcon, CurrencyDollarIcon, ClockIcon } from "@phosphor-icons/react"
+import { formatPrice } from "@/lib/utils"
 import type { Order } from "@/types"
 
 export default function StudentDashboardPage() {
@@ -94,7 +95,7 @@ export default function StudentDashboardPage() {
             {loading ? (
               <Skeleton className="h-6 w-16" />
             ) : (
-              <p className="font-heading text-lg font-medium">${monthlySpent.toFixed(2)}</p>
+              <p className="font-heading text-lg font-medium">{formatPrice(monthlySpent)}</p>
             )}
           </CardContent>
         </Card>
@@ -131,7 +132,7 @@ export default function StudentDashboardPage() {
                     <TableRow key={order.id}>
                       <TableCell className="font-medium">{order.order_number}</TableCell>
                       <TableCell>{order.items?.length ?? "—"}</TableCell>
-                      <TableCell>${order.total.toFixed(2)}</TableCell>
+                      <TableCell>{formatPrice(order.total)}</TableCell>
                       <TableCell>
                         <Badge variant={statusVariant[order.status]}>{order.status}</Badge>
                       </TableCell>

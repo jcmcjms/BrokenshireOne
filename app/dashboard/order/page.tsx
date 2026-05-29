@@ -22,7 +22,7 @@ import {
   ShoppingCart,
   ForkKnife,
 } from "@phosphor-icons/react"
-import { cn } from "@/lib/utils"
+import { cn, formatPrice } from "@/lib/utils"
 import type { MenuItem, MenuCategory, User, ApiResponse } from "@/types"
 
 interface CartItem extends MenuItem {
@@ -306,7 +306,7 @@ export default function OrderPage() {
                           )}
                           <div className="mt-auto flex items-center justify-between">
                             <span className="text-sm font-heading font-medium">
-                              ${item.price.toFixed(2)}
+                              {formatPrice(item.price)}
                             </span>
                             {inCart && (
                               <Badge variant="default" className="text-[10px]">
@@ -371,7 +371,7 @@ export default function OrderPage() {
                   <div className="flex-1 min-w-0">
                     <p className="font-medium truncate">{ci.name}</p>
                     <p className="text-muted-foreground">
-                      ${(ci.price * ci.cartQuantity).toFixed(2)}
+                      {formatPrice(ci.price * ci.cartQuantity)}
                     </p>
                   </div>
                   <div className="flex items-center gap-1">
@@ -411,7 +411,7 @@ export default function OrderPage() {
         {/* Total */}
         <div className="flex items-center justify-between text-xs font-medium mb-3">
           <span>Total</span>
-          <span className="font-heading text-sm">${cartTotal.toFixed(2)}</span>
+          <span className="font-heading text-sm">{formatPrice(cartTotal)}</span>
         </div>
 
         {/* Payment method */}
@@ -433,7 +433,7 @@ export default function OrderPage() {
         {canUseCredit && paymentMethod === "credit" && user && (
           <Alert className="mb-3 py-2">
             <AlertDescription className="text-xs">
-              Credit limit: ${(user as any).monthly_credit_limit?.toFixed(2) ?? "0.00"}
+              Credit limit: {formatPrice((user as any).monthly_credit_limit)}
             </AlertDescription>
           </Alert>
         )}

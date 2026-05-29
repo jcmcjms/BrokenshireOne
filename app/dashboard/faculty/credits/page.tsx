@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Separator } from "@/components/ui/separator"
-import { cn } from "@/lib/utils"
+import { cn, formatPrice } from "@/lib/utils"
 import { CreditCardIcon, CurrencyDollarIcon, ClockIcon } from "@phosphor-icons/react"
 import type { CreditAllowance, CreditTransaction } from "@/types"
 
@@ -88,16 +88,16 @@ export default function FacultyCreditsPage() {
               <div className="grid grid-cols-3 gap-4">
                 <div>
                   <p className="text-xs text-muted-foreground">Limit</p>
-                  <p className="font-heading text-base font-medium">${creditLimit.toFixed(2)}</p>
+                  <p className="font-heading text-base font-medium">{formatPrice(creditLimit)}</p>
                 </div>
                 <div>
                   <p className="text-xs text-muted-foreground">Used</p>
-                  <p className="font-heading text-base font-medium">${creditUsed.toFixed(2)}</p>
+                  <p className="font-heading text-base font-medium">{formatPrice(creditUsed)}</p>
                 </div>
                 <div>
                   <p className="text-xs text-muted-foreground">Remaining</p>
                   <p className={cn("font-heading text-base font-medium", creditRemaining <= 0 && "text-destructive")}>
-                    ${creditRemaining.toFixed(2)}
+                    {formatPrice(creditRemaining)}
                   </p>
                 </div>
               </div>
@@ -153,7 +153,7 @@ export default function FacultyCreditsPage() {
                           <Badge variant={typeVariant[tx.type]} className="capitalize">{tx.type}</Badge>
                         </TableCell>
                         <TableCell className={cn(tx.amount < 0 ? "text-destructive" : "")}>
-                          {tx.amount < 0 ? `-$${Math.abs(tx.amount).toFixed(2)}` : `$${tx.amount.toFixed(2)}`}
+                          {tx.amount < 0 ? `-${formatPrice(Math.abs(tx.amount))}` : formatPrice(tx.amount)}
                         </TableCell>
                         <TableCell className="text-muted-foreground">{tx.notes ?? "—"}</TableCell>
                       </TableRow>

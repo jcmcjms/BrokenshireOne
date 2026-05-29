@@ -11,6 +11,7 @@ import { Skeleton } from "@/components/ui/skeleton"
 import { Separator } from "@/components/ui/separator"
 import { toast } from "sonner"
 import { ListIcon, CaretRightIcon } from "@phosphor-icons/react"
+import { formatPrice } from "@/lib/utils"
 import type { Order } from "@/types"
 
 const statuses = ["all", "pending", "completed", "cancelled"] as const
@@ -132,7 +133,7 @@ export default function ManagerOrdersPage() {
                           <TableCell className="font-medium">{order.order_number}</TableCell>
                           <TableCell>{order.user_name ?? "—"}</TableCell>
                           <TableCell>{order.items?.length ?? "—"}</TableCell>
-                          <TableCell>${order.total.toFixed(2)}</TableCell>
+                          <TableCell>{formatPrice(order.total)}</TableCell>
                           <TableCell className="capitalize">{order.payment_method}</TableCell>
                           <TableCell>
                             <Badge variant={statusVariant[order.status]}>{order.status}</Badge>
@@ -203,7 +204,7 @@ export default function ManagerOrdersPage() {
                         <span className="text-muted-foreground mr-1">{item.quantity}x</span>
                         {item.item_name ?? "Item"}
                       </span>
-                      <span>${(item.quantity * item.unit_price).toFixed(2)}</span>
+                      <span>{formatPrice(item.quantity * item.unit_price)}</span>
                     </div>
                   ))}
                   {(!selectedOrder.items || selectedOrder.items.length === 0) && (
@@ -216,7 +217,7 @@ export default function ManagerOrdersPage() {
 
               <div className="flex items-center justify-between text-xs font-medium">
                 <span>Total</span>
-                <span>${selectedOrder.total.toFixed(2)}</span>
+                <span>{formatPrice(selectedOrder.total)}</span>
               </div>
 
               {selectedOrder.notes && (

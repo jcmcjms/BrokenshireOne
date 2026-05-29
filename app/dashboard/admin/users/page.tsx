@@ -33,6 +33,7 @@ import {
   X,
   Warning,
 } from "@phosphor-icons/react"
+import { formatPrice } from "@/lib/utils"
 import type { User } from "@/types"
 
 interface Role {
@@ -329,7 +330,7 @@ export default function AdminUsersPage() {
                         </Badge>
                       </TableCell>
                       <TableCell className="text-right font-mono text-xs">
-                        ${user.monthly_credit_limit.toFixed(2)}
+                        {formatPrice(user.monthly_credit_limit)}
                       </TableCell>
                       <TableCell>
                         <div className="flex items-center gap-1.5">

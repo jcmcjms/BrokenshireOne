@@ -12,7 +12,7 @@ import { Separator } from "@/components/ui/separator"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { toast } from "sonner"
 import { MagnifyingGlassIcon, PlusIcon, MinusIcon, TrashIcon, CheckCircleIcon, XIcon } from "@phosphor-icons/react"
-import { cn } from "@/lib/utils"
+import { cn, formatPrice } from "@/lib/utils"
 import type { MenuItem, MenuCategory, User } from "@/types"
 
 interface CartItem extends MenuItem {
@@ -221,7 +221,7 @@ export default function StaffCounterPage() {
                           {item.description && (
                             <p className="text-[10px] text-muted-foreground line-clamp-1">{item.description}</p>
                           )}
-                          <p className="text-sm font-heading font-medium mt-auto">${item.price.toFixed(2)}</p>
+                          <p className="text-sm font-heading font-medium mt-auto">{formatPrice(item.price)}</p>
                           {cart.find((ci) => ci.id === item.id) && (
                             <Badge variant="default" className="w-fit text-[10px]">
                               {cart.find((ci) => ci.id === item.id)!.cartQuantity} in cart
@@ -289,7 +289,7 @@ export default function StaffCounterPage() {
             </div>
             {canUseCredit && (
               <p className="text-muted-foreground">
-                Credit: ${selectedCustomer.monthly_credit_limit.toFixed(2)}
+                Credit: {formatPrice(selectedCustomer.monthly_credit_limit)}
               </p>
             )}
             <Button variant="ghost" size="icon-xs" onClick={() => { setSelectedCustomer(null); setCustomerQuery("") }}>
@@ -312,7 +312,7 @@ export default function StaffCounterPage() {
                 <div key={ci.id} className="flex items-center gap-2 text-xs">
                   <div className="flex-1 min-w-0">
                     <p className="font-medium truncate">{ci.name}</p>
-                    <p className="text-muted-foreground">${(ci.price * ci.cartQuantity).toFixed(2)}</p>
+                    <p className="text-muted-foreground">{formatPrice(ci.price * ci.cartQuantity)}</p>
                   </div>
                   <div className="flex items-center gap-1">
                     <Button variant="ghost" size="icon-xs" onClick={() => updateQty(ci.id, -1)}>
@@ -336,7 +336,7 @@ export default function StaffCounterPage() {
 
         <div className="flex items-center justify-between text-xs font-medium mb-3">
           <span>Total</span>
-          <span className="font-heading text-sm">${cartTotal.toFixed(2)}</span>
+          <span className="font-heading text-sm">{formatPrice(cartTotal)}</span>
         </div>
 
         <div className="mb-3">

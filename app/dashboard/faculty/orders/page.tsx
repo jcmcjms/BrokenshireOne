@@ -8,6 +8,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { ListIcon } from "@phosphor-icons/react"
+import { formatPrice } from "@/lib/utils"
 import type { Order } from "@/types"
 
 const statusVariant: Record<string, "default" | "secondary" | "destructive" | "outline" | "ghost"> = {
@@ -93,7 +94,7 @@ export default function FacultyOrdersPage() {
                         <TableRow key={order.id}>
                           <TableCell className="font-medium">{order.order_number}</TableCell>
                           <TableCell>{order.items?.length ?? "—"}</TableCell>
-                          <TableCell>${order.total.toFixed(2)}</TableCell>
+                          <TableCell>{formatPrice(order.total)}</TableCell>
                           <TableCell className="capitalize">{order.payment_method}</TableCell>
                           <TableCell>
                             <Badge variant={statusVariant[order.status]}>{order.status}</Badge>

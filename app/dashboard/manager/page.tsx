@@ -8,6 +8,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Skeleton } from "@/components/ui/skeleton"
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert"
 import { ClipboardTextIcon, CurrencyDollarIcon, ShoppingCartIcon, PlusIcon, ListIcon, CreditCardIcon, WarningCircleIcon } from "@phosphor-icons/react"
+import { formatPrice } from "@/lib/utils"
 import type { DashboardStats, Order } from "@/types"
 
 export default function ManagerDashboardPage() {
@@ -152,7 +153,7 @@ export default function ManagerDashboardPage() {
                     <TableRow key={order.id}>
                       <TableCell className="font-medium">{order.order_number}</TableCell>
                       <TableCell>{order.user_name ?? "—"}</TableCell>
-                      <TableCell>${order.total.toFixed(2)}</TableCell>
+                      <TableCell>{formatPrice(order.total)}</TableCell>
                       <TableCell className="capitalize">{order.payment_method}</TableCell>
                       <TableCell>
                         <Badge variant={statusVariant[order.status]}>{order.status}</Badge>

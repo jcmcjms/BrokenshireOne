@@ -10,6 +10,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 import { Skeleton } from "@/components/ui/skeleton"
 import { toast } from "sonner"
 import { CreditCardIcon, PencilIcon, CurrencyDollarIcon } from "@phosphor-icons/react"
+import { formatPrice } from "@/lib/utils"
 import type { CreditAllowance } from "@/types"
 
 export default function ManagerCreditsPage() {
@@ -116,11 +117,11 @@ export default function ManagerCreditsPage() {
                     <TableRow key={a.id}>
                       <TableCell className="font-medium">{a.user_name ?? "—"}</TableCell>
                       <TableCell className="text-muted-foreground">—</TableCell>
-                      <TableCell>${a.limit_amount.toFixed(2)}</TableCell>
-                      <TableCell>${a.used_amount.toFixed(2)}</TableCell>
+                      <TableCell>{formatPrice(a.limit_amount)}</TableCell>
+                      <TableCell>{formatPrice(a.used_amount)}</TableCell>
                       <TableCell>
                         <span className={a.remaining <= 0 ? "text-destructive font-medium" : "text-muted-foreground"}>
-                          {a.remaining <= 0 ? "$0.00" : `$${a.remaining.toFixed(2)}`}
+                          {formatPrice(a.remaining <= 0 ? 0 : a.remaining)}
                         </span>
                       </TableCell>
                       <TableCell>
@@ -163,8 +164,8 @@ export default function ManagerCreditsPage() {
             </div>
             {editingAllowance && (
               <div className="grid grid-cols-2 gap-2 text-xs text-muted-foreground">
-                <span>Currently used: ${editingAllowance.used_amount.toFixed(2)}</span>
-                <span>Currently remaining: ${editingAllowance.remaining.toFixed(2)}</span>
+                <span>Currently used: {formatPrice(editingAllowance.used_amount)}</span>
+                <span>Currently remaining: {formatPrice(editingAllowance.remaining)}</span>
               </div>
             )}
           </div>

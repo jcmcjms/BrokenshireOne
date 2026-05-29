@@ -6,7 +6,7 @@ import { Badge } from "@/components/ui/badge"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Button } from "@/components/ui/button"
-import { cn } from "@/lib/utils"
+import { cn, formatPrice } from "@/lib/utils"
 import { UserIcon, ClipboardTextIcon, CurrencyDollarIcon, CreditCardIcon, ClockIcon } from "@phosphor-icons/react"
 import type { Order, CreditAllowance } from "@/types"
 
@@ -108,7 +108,7 @@ export default function FacultyDashboardPage() {
             {loading ? (
               <Skeleton className="h-6 w-16" />
             ) : (
-              <p className="font-heading text-lg font-medium">${monthlySpent.toFixed(2)}</p>
+              <p className="font-heading text-lg font-medium">{formatPrice(monthlySpent)}</p>
             )}
           </CardContent>
         </Card>
@@ -137,9 +137,9 @@ export default function FacultyDashboardPage() {
           ) : credit ? (
             <>
               <div className="flex items-center justify-between text-xs">
-                <span className="text-muted-foreground">Limit: ${creditLimit.toFixed(2)}</span>
-                <span className="text-muted-foreground">Used: ${creditUsed.toFixed(2)}</span>
-                <span className="font-medium">Remaining: ${creditRemaining.toFixed(2)}</span>
+                <span className="text-muted-foreground">Limit: {formatPrice(creditLimit)}</span>
+                <span className="text-muted-foreground">Used: {formatPrice(creditUsed)}</span>
+                <span className="font-medium">Remaining: {formatPrice(creditRemaining)}</span>
               </div>
               <div className="h-2 w-full bg-muted overflow-hidden">
                 <div
@@ -188,7 +188,7 @@ export default function FacultyDashboardPage() {
                     <TableRow key={order.id}>
                       <TableCell className="font-medium">{order.order_number}</TableCell>
                       <TableCell>{order.items?.length ?? "—"}</TableCell>
-                      <TableCell>${order.total.toFixed(2)}</TableCell>
+                      <TableCell>{formatPrice(order.total)}</TableCell>
                       <TableCell>
                         <Badge variant={statusVariant[order.status]}>{order.status}</Badge>
                       </TableCell>

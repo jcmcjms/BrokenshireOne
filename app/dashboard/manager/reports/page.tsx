@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Skeleton } from "@/components/ui/skeleton"
 import { Button } from "@/components/ui/button"
 import { CurrencyDollarIcon, ClipboardTextIcon, ShoppingCartIcon, ChartBarIcon } from "@phosphor-icons/react"
+import { formatPrice } from "@/lib/utils"
 import type { DashboardStats } from "@/types"
 
 export default function ManagerReportsPage() {
@@ -47,7 +48,7 @@ export default function ManagerReportsPage() {
     {
       title: "Avg Order Value",
       value: stats?.total_orders_today && stats?.total_revenue_today
-        ? (stats.total_revenue_today / stats.total_orders_today).toFixed(2)
+        ? formatPrice(stats.total_revenue_today / stats.total_orders_today, false)
         : "0.00",
       prefix: "$",
       subtitle: "Today",

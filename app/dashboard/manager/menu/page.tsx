@@ -12,6 +12,7 @@ import { Separator } from "@/components/ui/separator"
 import { Skeleton } from "@/components/ui/skeleton"
 import { toast } from "sonner"
 import { PlusIcon, PencilIcon, TrashIcon, ImageIcon, FolderPlus, ListBullets } from "@phosphor-icons/react"
+import { formatPrice } from "@/lib/utils"
 import type { MenuItem, MenuCategory } from "@/types"
 
 export default function ManagerMenuPage() {
@@ -255,7 +256,7 @@ export default function ManagerMenuPage() {
                       </div>
                       <Badge variant="outline" className="w-fit">{item.category_name ?? categories.find(c => c.id === item.category_id)?.name}</Badge>
                       <div className="flex items-center justify-between">
-                        <span className="text-xs font-medium">${item.price.toFixed(2)}</span>
+                        <span className="text-xs font-medium">{formatPrice(item.price)}</span>
                         <Badge variant={item.available ? "default" : "secondary"} className="text-[10px]">
                           {item.available ? "Available" : "Unavailable"}
                         </Badge>
