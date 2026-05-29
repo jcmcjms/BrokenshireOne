@@ -45,10 +45,10 @@ function createStubClient(reason: string): SupabaseClient {
       // The target is a function so it can be called; we use a Proxy for property access
       Object.assign(() => {}, {
         // then/catch makes it "thenable" — so await triggers this
-        then(resolve: Function, _reject?: Function) {
+        then(resolve: (value: { data: null; error: Error; count: null }) => void) {
           return Promise.resolve({ data: null, error: new Error(reason), count: null }).then(resolve);
         },
-        catch(reject: Function) {
+        catch(reject: (reason: Error) => void) {
           return Promise.resolve({ data: null, error: new Error(reason), count: null }).then(undefined, reject);
         },
         // All chainable methods return the builder itself
