@@ -4,7 +4,7 @@ import { verifyToken } from '@/lib/auth/jwt';
 
 const SESSION_COOKIE_NAME = 'session_token';
 
-const publicRoutes = ['/login', '/api/auth/login'];
+const publicRoutes = ['/login', '/api/auth/login', '/api/auth/logout'];
 
 const roleRoutes: Record<string, string[]> = {
   admin: ['/dashboard/admin'],
@@ -17,14 +17,21 @@ const roleRoutes: Record<string, string[]> = {
 export function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
+  // Allow public routes and static files
   if (publicRoutes.some(route => pathname.startsWith(route))) {
+    return NextResponse.next();
+  }
+
+  // API routes handle their own authentication - let them through
+  if (pathname.startsWith('/api/')) {
     return NextResponse.next();
   }
 
   const token = request.cookies.get(SESSION_COOKIE_NAME)?.value;
 
   if (!token) {
-    if (pathname.startsWith('/dashboard') || pathname.startsWith('/api/')) {
+    // Protect dashboard pages - redirect to login
+    if (pathname.startsWith('/dashboard')) {
       const loginUrl = new URL('/login', request.url);
       loginUrl.searchParams.set('redirect', pathname);
       return NextResponse.redirect(loginUrl);
