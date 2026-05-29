@@ -53,7 +53,7 @@ export default function AdminDashboardPage() {
   const statCards = [
     { label: "Total Users", value: stats?.total_users, icon: UsersIcon },
     { label: "Today's Orders", value: stats?.total_orders_today, icon: ClipboardTextIcon },
-    { label: "Today's Revenue", value: stats?.total_revenue_today, icon: CurrencyDollarIcon, prefix: "$" },
+    { label: "Today's Revenue", value: stats?.total_revenue_today != null ? formatPrice(stats.total_revenue_today, false) : null, icon: CurrencyDollarIcon, prefix: "₱" },
     { label: "Active Orders", value: stats?.active_orders, icon: ShoppingCartIcon },
   ]
 
