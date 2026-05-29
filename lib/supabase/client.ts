@@ -30,48 +30,77 @@ function getServerClient(): SupabaseClient {
 }
 
 /**
- * Creates a stub client that returns errors for every query.
- * This is better than throwing during client creation because:
- * 1. The error surfaces through normal query error paths
- * 2. API routes can return proper error responses instead of 500s
- * 3. The specific missing-env message is preserved in the error
+ * Creates a stub client that surfaces env-missing errors through
+ * normal query channels instead of throwing.
+ *
+ * The stub query builder mimics the Supabase chaining pattern:
+ *   supabase.from('users').select('*').eq('x','y').single()
+ * Each method returns the same builder proxy, and when awaited
+ * (via .then() on the proxy), it resolves with an error result.
  */
 function createStubClient(reason: string): SupabaseClient {
-  const stubHandler = {
-    get(_target: any, prop: string) {
-      // Return a function that returns a failed promise for any callable prop
-      if (['from', 'rpc', 'channel', 'realtime'].includes(prop)) {
-        return (..._args: any[]) => {
-          if (prop === 'from') {
-            // Return a query builder that fails on any terminal method
-            return new Proxy({} as any, {
-              get(__target: any, method: string) {
-                if (['select', 'insert', 'update', 'delete', 'upsert'].includes(method)) {
-                  return (...__args: any[]) => Promise.resolve({ data: null, error: new Error(reason), count: null });
-                }
-                if (['eq', 'neq', 'gt', 'gte', 'lt', 'lte', 'like', 'ilike', 'is', 'in', 'contains', 'containedBy', 'rangeGt', 'rangeGte', 'rangeLt', 'rangeLte', 'overlaps', 'textSearch', 'filter', 'not', 'or', 'and', 'order', 'limit', 'single', 'maybeSingle'].includes(method)) {
-                  return (...__args: any[]) => __target;
-                }
-                if (method === 'then' || method === 'catch') {
-                  // Handle awaited calls
-                  return undefined;
-                }
-                return (...__args: any[]) => Promise.resolve({ data: null, error: new Error(reason), count: null });
-              },
-            });
+  // Build a query builder proxy that returns error on await
+  function createQueryBuilder(): any {
+    const queryBuilder: any = new Proxy(
+      // The target is a function so it can be called; we use a Proxy for property access
+      Object.assign(() => {}, {
+        // then/catch makes it "thenable" — so await triggers this
+        then(resolve: Function, _reject?: Function) {
+          return Promise.resolve({ data: null, error: new Error(reason), count: null }).then(resolve);
+        },
+        catch(reject: Function) {
+          return Promise.resolve({ data: null, error: new Error(reason), count: null }).then(undefined, reject);
+        },
+        // All chainable methods return the builder itself
+        select: () => queryBuilder,
+        insert: () => queryBuilder,
+        update: () => queryBuilder,
+        delete: () => queryBuilder,
+        upsert: () => queryBuilder,
+        eq: () => queryBuilder,
+        neq: () => queryBuilder,
+        gt: () => queryBuilder,
+        gte: () => queryBuilder,
+        lt: () => queryBuilder,
+        lte: () => queryBuilder,
+        like: () => queryBuilder,
+        ilike: () => queryBuilder,
+        is: () => queryBuilder,
+        in: () => queryBuilder,
+        contains: () => queryBuilder,
+        containedBy: () => queryBuilder,
+        overlaps: () => queryBuilder,
+        textSearch: () => queryBuilder,
+        filter: () => queryBuilder,
+        not: () => queryBuilder,
+        or: () => queryBuilder,
+        order: () => queryBuilder,
+        limit: () => queryBuilder,
+        single: () => queryBuilder,
+        maybeSingle: () => queryBuilder,
+        range: () => queryBuilder,
+      }),
+      {
+        get(target: any, prop: string | symbol) {
+          if (prop in target) return (target as any)[prop];
+          if (typeof prop === 'string' && !prop.startsWith('__')) {
+            return () => queryBuilder;
           }
-          return Promise.reject(new Error(reason));
-        };
-      }
-      // Return a function for any other callable prop
-      if (typeof ({} as any)[prop] === 'function') {
-        return (..._args: any[]) => Promise.reject(new Error(reason));
-      }
+          return (target as any)[prop];
+        },
+      },
+    );
+    return queryBuilder;
+  }
+
+  return new Proxy({} as SupabaseClient, {
+    get(_target: any, prop: string | symbol) {
+      if (prop === 'from') return (_table: string) => createQueryBuilder();
+      if (prop === 'rpc') return () => Promise.reject(new Error(reason));
+      if (prop === 'channel' || prop === 'realtime') return () => ({ unsubscribe: () => {} });
       return undefined;
     },
-  };
-
-  return new Proxy({} as SupabaseClient, stubHandler);
+  });
 }
 
 /**
