@@ -18,7 +18,12 @@ export async function getUserByEmail(email: string): Promise<DbUser | null> {
     .eq('email', email)
     .single();
 
-  if (error) return null;
+  if (error) {
+    // Log query-level errors (e.g. missing env vars, connectivity issues)
+    // so they surface in Vercel logs instead of silently returning null
+    console.error('[queries] getUserByEmail error:', error?.message || error);
+    return null;
+  }
   return data as unknown as DbUser;
 }
 

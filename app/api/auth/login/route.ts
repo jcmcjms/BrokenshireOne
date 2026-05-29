@@ -57,9 +57,10 @@ export async function POST(request: NextRequest) {
       success: true,
       data: { ...safeUser, role: roleName, permissions },
     });
-  } catch (error) {
+  } catch (error: any) {
+    console.error('[LOGIN ERROR]', error?.message || error);
     return NextResponse.json<ApiResponse>(
-      { success: false, error: 'An error occurred during login' },
+      { success: false, error: error?.message || 'An error occurred during login' },
       { status: 500 },
     );
   }
