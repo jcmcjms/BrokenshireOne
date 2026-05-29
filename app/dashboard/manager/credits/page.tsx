@@ -153,7 +153,7 @@ export default function ManagerCreditsPage() {
           </DialogHeader>
           <div className="flex flex-col gap-3">
             <div className="flex flex-col gap-1">
-              <label className="text-xs text-muted-foreground">Monthly Limit (₱)</label>
+              <label className="text-xs text-muted-foreground">Monthly Limit (PHP)</label>
               <Input
                 value={newLimit}
                 onChange={(e) => setNewLimit(e.target.value)}

@@ -34,8 +34,8 @@ export default function ManagerReportsPage() {
   const summaryCards = [
     {
       title: "Total Revenue",
-      value: stats?.total_revenue_today != null ? formatPrice(stats.total_revenue_today, false) : null,
-      prefix: "₱",
+      value: stats?.total_revenue_today != null ? formatPrice(stats.total_revenue_today, false) : undefined,
+      prefix: "PHP ",
       subtitle: "This month",
       icon: CurrencyDollarIcon,
     },
@@ -50,7 +50,7 @@ export default function ManagerReportsPage() {
       value: stats?.total_orders_today && stats?.total_revenue_today
         ? formatPrice(stats.total_revenue_today / stats.total_orders_today, false)
         : "0.00",
-      prefix: "₱",
+      prefix: "PHP ",
       subtitle: "Today",
       icon: ShoppingCartIcon,
     },
