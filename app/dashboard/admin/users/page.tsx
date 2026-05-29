@@ -46,6 +46,7 @@ interface Role {
 interface FormData {
   name: string
   email: string
+  password: string
   employee_id: string
   role_id: string
   monthly_credit_limit: string
@@ -54,6 +55,7 @@ interface FormData {
 const emptyForm: FormData = {
   name: "",
   email: "",
+  password: "",
   employee_id: "",
   role_id: "",
   monthly_credit_limit: "0",
@@ -148,6 +150,7 @@ export default function AdminUsersPage() {
     setForm({
       name: user.name,
       email: user.email,
+      password: "",
       employee_id: user.employee_id || "",
       role_id: user.role_id,
       monthly_credit_limit: user.monthly_credit_limit.toString(),
@@ -181,6 +184,11 @@ export default function AdminUsersPage() {
         monthly_credit_limit: parseFloat(form.monthly_credit_limit) || 0,
       }
 
+      // Only include password on create (not on edit)
+      if (!isEdit && form.password) {
+        body.password = form.password
+      }
+
       const res = await fetch(url, {
         method,
         headers: { "Content-Type": "application/json" },
@@ -196,16 +204,11 @@ export default function AdminUsersPage() {
       const data = json.data || {}
 
       if (!isEdit) {
-        if (data.email_sent) {
-          setFormSuccess("User created. Credentials emailed to " + form.email)
-          setGeneratedCredentials(null)
-        } else {
-          setFormSuccess("User created. Email delivery failed — copy credentials below.")
-          setGeneratedCredentials({
-            employee_id: data.generated_employee_id || form.employee_id || "Auto-generated",
-            password: data.generated_password || "Unavailable",
-          })
-        }
+        setFormSuccess("User created successfully")
+        setGeneratedCredentials({
+          employee_id: data.generated_employee_id || form.employee_id || "Auto-generated",
+          password: data.generated_password || "Unavailable",
+        })
       } else {
         setFormSuccess("User updated successfully")
         setGeneratedCredentials(null)
@@ -411,7 +414,7 @@ export default function AdminUsersPage() {
             <DialogDescription>
               {editingUser
                 ? "Update user details below."
-                : "Create a new user. Credentials will be emailed to them."}
+                : "Create a new user. Leave password blank to auto-generate one."}
             </DialogDescription>
           </DialogHeader>
 
@@ -435,6 +438,20 @@ export default function AdminUsersPage() {
                 value={form.email}
                 onChange={(e) => setForm({ ...form, email: e.target.value })}
                 placeholder="john@school.edu"
+                className="h-8 text-xs"
+              />
+            </div>
+
+            {/* Password */}
+            <div className="flex flex-col gap-1">
+              <label className="text-[11px] font-medium text-muted-foreground">
+                Password <span className="text-zinc-400">(auto-generated if empty)</span>
+              </label>
+              <Input
+                type="text"
+                value={form.password}
+                onChange={(e) => setForm({ ...form, password: e.target.value })}
+                placeholder="Leave blank to auto-generate"
                 className="h-8 text-xs"
               />
             </div>
@@ -514,8 +531,8 @@ export default function AdminUsersPage() {
             {generatedCredentials && (
               <div className="bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800/40 rounded-md p-3 flex flex-col gap-2">
                 <p className="text-[11px] font-medium text-amber-800 dark:text-amber-400 flex items-center gap-1">
-                  <span className="inline-block size-1.5 rounded-full bg-amber-500 animate-pulse" />
-                  Email delivery pending — credentials shown only once
+                  <span className="inline-block size-1.5 rounded-full bg-amber-500" />
+                  Credentials — share with the user (shown only once)
                 </p>
                 <div className="text-xs space-y-1">
                   <div className="flex items-center justify-between">

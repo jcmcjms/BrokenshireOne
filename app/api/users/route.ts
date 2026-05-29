@@ -3,7 +3,6 @@ import { getSession } from '@/lib/auth/session';
 import { supabase } from '@/lib/supabase/client';
 import { createUser } from '@/lib/supabase/queries';
 import { hashPassword } from '@/lib/auth/password';
-import { sendCredentialsEmail } from '@/lib/email';
 import type { ApiResponse } from '@/types';
 import type { DbUser } from '@/types/database';
 
@@ -130,8 +129,8 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Generate password
-    const plainPassword = generatePassword();
+    // Use provided password or auto-generate
+    const plainPassword = body.password || generatePassword();
     const passwordHash = await hashPassword(plainPassword);
 
     // Create user
@@ -144,31 +143,17 @@ export async function POST(request: NextRequest) {
       monthly_credit_limit: body.monthly_credit_limit ?? 0,
     });
 
-    // Send credentials email — capture whether it succeeded
-    const emailResult = await sendCredentialsEmail({
-      to: body.email,
-      name: body.name,
-      employeeId,
-      password: plainPassword,
-    });
-
     const { password_hash, roles, ...safeUser } = newUser as any;
     const roleName2 = roles?.name ?? 'student';
 
-    // If email failed, include the generated password so the admin can share it manually
+    // Return credentials so the admin can share them with the user
     return NextResponse.json<ApiResponse>({
       success: true,
       data: {
         ...safeUser,
         role: roleName2,
-        email_sent: emailResult.sent,
-        ...(emailResult.sent
-          ? {}
-          : {
-              generated_password: plainPassword,
-              generated_employee_id: employeeId,
-              email_error: emailResult.error,
-            }),
+        generated_password: plainPassword,
+        generated_employee_id: employeeId,
       },
     }, { status: 201 });
   } catch (error: any) {
