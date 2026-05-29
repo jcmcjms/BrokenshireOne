@@ -1,22 +1,21 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getUserByEmail, getRolePermissions } from '@/lib/supabase/queries';
+import { getUserByEmployeeId, getRolePermissions } from '@/lib/supabase/queries';
 import { verifyPassword } from '@/lib/auth/password';
 import { setSession } from '@/lib/auth/session';
 import type { ApiResponse } from '@/types';
-import type { DbUser } from '@/types/database';
 
 export async function POST(request: NextRequest) {
   try {
-    const { email, password } = await request.json();
+    const { employee_id, password } = await request.json();
 
-    if (!email || !password) {
+    if (!employee_id || !password) {
       return NextResponse.json<ApiResponse>(
-        { success: false, error: 'Email and password are required' },
+        { success: false, error: 'Employee ID and password are required' },
         { status: 400 },
       );
     }
 
-    const user = await getUserByEmail(email.toLowerCase());
+    const user = await getUserByEmployeeId(employee_id.trim().toUpperCase());
 
     if (!user) {
       return NextResponse.json<ApiResponse>(

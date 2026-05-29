@@ -5,12 +5,12 @@ import { useRouter } from "next/navigation"
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
-import { SignIn, User, Lock } from "@phosphor-icons/react"
+import { SignIn, IdentificationCard, Lock } from "@phosphor-icons/react"
 import type { ApiResponse } from "@/types"
 
 export default function LoginPage() {
   const router = useRouter()
-  const [email, setEmail] = useState("")
+  const [employeeId, setEmployeeId] = useState("")
   const [password, setPassword] = useState("")
   const [error, setError] = useState("")
   const [loading, setLoading] = useState(false)
@@ -24,7 +24,7 @@ export default function LoginPage() {
       const res = await fetch("/api/auth/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, password }),
+        body: JSON.stringify({ employee_id: employeeId, password }),
       })
 
       const data: ApiResponse = await res.json()
@@ -59,20 +59,20 @@ export default function LoginPage() {
         <CardContent>
           <form onSubmit={handleSubmit} className="flex flex-col gap-3">
             <div className="flex flex-col gap-1.5">
-              <label htmlFor="email" className="text-xs text-muted-foreground">
-                Email
+              <label htmlFor="employee-id" className="text-xs text-muted-foreground">
+                Employee ID
               </label>
               <div className="relative">
-                <User className="pointer-events-none absolute left-2 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" />
+                <IdentificationCard className="pointer-events-none absolute left-2 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" />
                 <Input
-                  id="email"
-                  type="email"
-                  placeholder="you@school.edu"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  className="pl-7"
+                  id="employee-id"
+                  type="text"
+                  placeholder="e.g. STU-001"
+                  value={employeeId}
+                  onChange={(e) => setEmployeeId(e.target.value)}
+                  className="pl-7 uppercase"
                   required
-                  autoComplete="email"
+                  autoComplete="username"
                 />
               </div>
             </div>

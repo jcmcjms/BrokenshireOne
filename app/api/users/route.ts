@@ -1,8 +1,26 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { getSession } from '@/lib/auth/session';
 import { supabase } from '@/lib/supabase/client';
+import { createUser } from '@/lib/supabase/queries';
+import { hashPassword } from '@/lib/auth/password';
+import { sendCredentialsEmail } from '@/lib/email';
 import type { ApiResponse } from '@/types';
 import type { DbUser } from '@/types/database';
+
+function generatePassword(length = 12): string {
+  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789!@#$';
+  let password = '';
+  for (let i = 0; i < length; i++) {
+    password += chars.charAt(Math.floor(Math.random() * chars.length));
+  }
+  return password;
+}
+
+function generateEmployeeId(role: string): string {
+  const prefix = role.substring(0, 3).toUpperCase();
+  const random = Math.floor(1000 + Math.random() * 9000);
+  return `${prefix}-${random}`;
+}
 
 export async function GET() {
   try {
@@ -14,7 +32,6 @@ export async function GET() {
       );
     }
 
-    // Only admin users can list all users
     if (session.role !== 'admin') {
       return NextResponse.json<ApiResponse>(
         { success: false, error: 'Forbidden' },
@@ -35,7 +52,6 @@ export async function GET() {
       );
     }
 
-    // Transform to frontend-friendly format
     const safeUsers = (users as unknown as DbUser[]).map(user => {
       const roleName = (user as any).roles?.name ?? 'student';
       const { password_hash, roles, ...safeUser } = user as any;
@@ -50,6 +66,103 @@ export async function GET() {
     console.error('[users] Error:', error);
     return NextResponse.json<ApiResponse>(
       { success: false, error: 'Failed to fetch users' },
+      { status: 500 },
+    );
+  }
+}
+
+export async function POST(request: NextRequest) {
+  try {
+    const session = await getSession();
+    if (!session) {
+      return NextResponse.json<ApiResponse>(
+        { success: false, error: 'Not authenticated' },
+        { status: 401 },
+      );
+    }
+
+    if (session.role !== 'admin') {
+      return NextResponse.json<ApiResponse>(
+        { success: false, error: 'Forbidden' },
+        { status: 403 },
+      );
+    }
+
+    const body = await request.json();
+
+    // Validate required fields
+    if (!body.name || !body.email || !body.role_id) {
+      return NextResponse.json<ApiResponse>(
+        { success: false, error: 'Name, email, and role are required' },
+        { status: 400 },
+      );
+    }
+
+    // Check for duplicate email
+    const { data: existing } = await supabase
+      .from('users')
+      .select('id')
+      .eq('email', body.email.toLowerCase())
+      .maybeSingle();
+
+    if (existing) {
+      return NextResponse.json<ApiResponse>(
+        { success: false, error: 'A user with this email already exists' },
+        { status: 409 },
+      );
+    }
+
+    // Generate employee_id if not provided
+    const roleName = body.role_name || 'student';
+    const employeeId = body.employee_id || generateEmployeeId(roleName);
+
+    // Check for duplicate employee_id
+    const { data: existingEmp } = await supabase
+      .from('users')
+      .select('id')
+      .eq('employee_id', employeeId)
+      .maybeSingle();
+
+    if (existingEmp) {
+      return NextResponse.json<ApiResponse>(
+        { success: false, error: 'A user with this Employee ID already exists' },
+        { status: 409 },
+      );
+    }
+
+    // Generate password
+    const plainPassword = generatePassword();
+    const passwordHash = await hashPassword(plainPassword);
+
+    // Create user
+    const newUser = await createUser({
+      name: body.name,
+      email: body.email.toLowerCase(),
+      password_hash: passwordHash,
+      role_id: body.role_id,
+      employee_id: employeeId,
+      monthly_credit_limit: body.monthly_credit_limit ?? 0,
+    });
+
+    // Send credentials email (fire-and-forget — don't block on failure)
+    sendCredentialsEmail({
+      to: body.email,
+      name: body.name,
+      employeeId,
+      password: plainPassword,
+    }).catch(err => console.error('[users] Email send failed:', err));
+
+    const { password_hash, roles, ...safeUser } = newUser as any;
+    const roleName2 = roles?.name ?? 'student';
+
+    return NextResponse.json<ApiResponse>({
+      success: true,
+      data: { ...safeUser, role: roleName2 },
+    }, { status: 201 });
+  } catch (error: any) {
+    console.error('[users POST] Error:', error?.message || error);
+    return NextResponse.json<ApiResponse>(
+      { success: false, error: error?.message || 'Failed to create user' },
       { status: 500 },
     );
   }

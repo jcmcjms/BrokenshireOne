@@ -67,11 +67,11 @@ async function main() {
 
   // Step 2: Reset user passwords and ensure users exist
   const usersToSeed = [
-    { name: 'Admin User', email: 'admin@canteen.com', role: 'admin', credit: 0, password: 'admin123' },
-    { name: 'Manager User', email: 'manager@canteen.com', role: 'manager', credit: 0, password: 'manager123' },
-    { name: 'Staff User', email: 'staff@canteen.com', role: 'staff', credit: 0, password: 'staff123' },
-    { name: 'Faculty User', email: 'faculty@canteen.com', role: 'faculty', credit: 150, password: 'faculty123' },
-    { name: 'Student User', email: 'student@canteen.com', role: 'student', credit: 100, password: 'student123' },
+    { name: 'Admin User', email: 'admin@canteen.com', empId: 'ADM-0001', role: 'admin', credit: 0, password: 'admin123' },
+    { name: 'Manager User', email: 'manager@canteen.com', empId: 'MGR-0001', role: 'manager', credit: 0, password: 'manager123' },
+    { name: 'Staff User', email: 'staff@canteen.com', empId: 'STF-0001', role: 'staff', credit: 0, password: 'staff123' },
+    { name: 'Faculty User', email: 'faculty@canteen.com', empId: 'FAC-0001', role: 'faculty', credit: 150, password: 'faculty123' },
+    { name: 'Student User', email: 'student@canteen.com', empId: 'STU-0001', role: 'student', credit: 100, password: 'student123' },
   ];
 
   for (const u of usersToSeed) {
@@ -88,13 +88,18 @@ async function main() {
     const { data: existing } = await supabase.from('users').select('id').eq('email', u.email).single();
 
     if (existing) {
-      // Update password
+      // Update password and employee_id
       const { error: updateErr } = await supabase
         .from('users')
-        .update({ password_hash: passwordHash, name: u.name, monthly_credit_limit: u.credit })
+        .update({
+          password_hash: passwordHash,
+          name: u.name,
+          monthly_credit_limit: u.credit,
+          employee_id: u.empId,
+        })
         .eq('id', existing.id);
       if (updateErr) console.error(`  ❌ ${u.email}: Update error - ${updateErr.message}`);
-      else console.log(`  ✅ ${u.email}: Password reset to "${u.password}"`);
+      else console.log(`  ✅ ${u.email}: Password reset to "${u.password}", Employee ID: ${u.empId}`);
     } else {
       // Create user
       const { error: insertErr } = await supabase.from('users').insert({
@@ -102,6 +107,7 @@ async function main() {
         email: u.email,
         password_hash: passwordHash,
         role_id: role.id,
+        employee_id: u.empId,
         monthly_credit_limit: u.credit,
         active: true,
       });
@@ -110,15 +116,16 @@ async function main() {
     }
   }
 
-  console.log('\n📋 Login Credentials:');
-  console.log('  ┌─────────────────────────┬──────────────┐');
-  console.log('  │ Email                   │ Password     │');
-  console.log('  ├─────────────────────────┼──────────────┤');
+  console.log('\n📋 Login Credentials (use Employee ID + Password):');
+  console.log('  ┌─────────────────────────┬──────────────┬──────────────┐');
+  console.log('  │ Email                   │ Employee ID  │ Password     │');
+  console.log('  ├─────────────────────────┼──────────────┤──────────────┤');
   usersToSeed.forEach(u => {
     const email = u.email.padEnd(23);
-    console.log(`  │ ${email} │ ${u.password.padEnd(12)} │`);
+    const empId = u.empId.padEnd(12);
+    console.log(`  │ ${email} │ ${empId} │ ${u.password.padEnd(12)} │`);
   });
-  console.log('  └─────────────────────────┴──────────────┘');
+  console.log('  └─────────────────────────┴──────────────┴──────────────┘');
   console.log('\n✅ Seed complete!');
 }
 

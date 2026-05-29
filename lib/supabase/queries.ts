@@ -297,3 +297,85 @@ export async function getUsersByRole(role: Role): Promise<DbUser[]> {
   if (error) throw error;
   return (data as unknown as DbUser[]) ?? [];
 }
+
+export async function getUserByEmployeeId(employeeId: string): Promise<DbUser | null> {
+  const { data, error } = await supabase
+    .from('users')
+    .select('*, roles(name)')
+    .eq('employee_id', employeeId)
+    .single();
+
+  if (error) {
+    console.error('[queries] getUserByEmployeeId error:', error?.message || error);
+    return null;
+  }
+  return data as unknown as DbUser;
+}
+
+export async function createUser(userData: {
+  name: string;
+  email: string;
+  password_hash: string;
+  role_id: string;
+  employee_id: string;
+  monthly_credit_limit: number;
+}): Promise<DbUser> {
+  const { data, error } = await supabase
+    .from('users')
+    .insert({
+      name: userData.name,
+      email: userData.email,
+      password_hash: userData.password_hash,
+      role_id: userData.role_id,
+      employee_id: userData.employee_id,
+      monthly_credit_limit: userData.monthly_credit_limit,
+      active: true,
+    } as any)
+    .select('*, roles(name)')
+    .single();
+
+  if (error) throw error;
+  return data as unknown as DbUser;
+}
+
+export async function updateUser(
+  id: string,
+  updates: {
+    name?: string;
+    email?: string;
+    role_id?: string;
+    employee_id?: string;
+    monthly_credit_limit?: number;
+    active?: boolean;
+    password_hash?: string;
+  },
+): Promise<DbUser> {
+  const { data, error } = await supabase
+    .from('users')
+    .update(updates as any)
+    .eq('id', id)
+    .select('*, roles(name)')
+    .single();
+
+  if (error) throw error;
+  return data as unknown as DbUser;
+}
+
+export async function deactivateUser(id: string): Promise<void> {
+  const { error } = await supabase
+    .from('users')
+    .update({ active: false } as any)
+    .eq('id', id);
+
+  if (error) throw error;
+}
+
+export async function getAllRoles(): Promise<{ id: string; name: string; description: string }[]> {
+  const { data, error } = await supabase
+    .from('roles')
+    .select('id, name, description')
+    .order('name');
+
+  if (error) throw error;
+  return (data as any) ?? [];
+}
