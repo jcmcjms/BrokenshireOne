@@ -144,20 +144,32 @@ export async function POST(request: NextRequest) {
       monthly_credit_limit: body.monthly_credit_limit ?? 0,
     });
 
-    // Send credentials email (fire-and-forget — don't block on failure)
-    sendCredentialsEmail({
+    // Send credentials email — capture whether it succeeded
+    const emailResult = await sendCredentialsEmail({
       to: body.email,
       name: body.name,
       employeeId,
       password: plainPassword,
-    }).catch(err => console.error('[users] Email send failed:', err));
+    });
 
     const { password_hash, roles, ...safeUser } = newUser as any;
     const roleName2 = roles?.name ?? 'student';
 
+    // If email failed, include the generated password so the admin can share it manually
     return NextResponse.json<ApiResponse>({
       success: true,
-      data: { ...safeUser, role: roleName2 },
+      data: {
+        ...safeUser,
+        role: roleName2,
+        email_sent: emailResult.sent,
+        ...(emailResult.sent
+          ? {}
+          : {
+              generated_password: plainPassword,
+              generated_employee_id: employeeId,
+              email_error: emailResult.error,
+            }),
+      },
     }, { status: 201 });
   } catch (error: any) {
     console.error('[users POST] Error:', error?.message || error);

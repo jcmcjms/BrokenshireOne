@@ -23,6 +23,7 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { Alert, AlertDescription } from "@/components/ui/alert"
+import { toast } from "sonner"
 import {
   UserPlus,
   PencilSimple,
@@ -83,6 +84,7 @@ export default function AdminUsersPage() {
   const [saving, setSaving] = useState(false)
   const [formError, setFormError] = useState<string | null>(null)
   const [formSuccess, setFormSuccess] = useState<string | null>(null)
+  const [generatedCredentials, setGeneratedCredentials] = useState<{ employee_id: string; password: string } | null>(null)
 
   // Delete confirmation
   const [deleteTarget, setDeleteTarget] = useState<User | null>(null)
@@ -137,6 +139,7 @@ export default function AdminUsersPage() {
     setForm(emptyForm)
     setFormError(null)
     setFormSuccess(null)
+    setGeneratedCredentials(null)
     setDialogOpen(true)
   }
 
@@ -151,6 +154,7 @@ export default function AdminUsersPage() {
     })
     setFormError(null)
     setFormSuccess(null)
+    setGeneratedCredentials(null)
     setDialogOpen(true)
   }
 
@@ -189,7 +193,23 @@ export default function AdminUsersPage() {
         throw new Error(json.error || "Failed to save user")
       }
 
-      setFormSuccess(isEdit ? "User updated successfully" : "User created successfully. Credentials emailed.")
+      const data = json.data || {}
+
+      if (!isEdit) {
+        if (data.email_sent) {
+          setFormSuccess("User created. Credentials emailed to " + form.email)
+          setGeneratedCredentials(null)
+        } else {
+          setFormSuccess("User created. Email delivery failed — copy credentials below.")
+          setGeneratedCredentials({
+            employee_id: data.generated_employee_id || form.employee_id || "Auto-generated",
+            password: data.generated_password || "Unavailable",
+          })
+        }
+      } else {
+        setFormSuccess("User updated successfully")
+        setGeneratedCredentials(null)
+      }
 
       // Refresh list
       await fetchUsers()
@@ -489,6 +509,40 @@ export default function AdminUsersPage() {
                   {formSuccess}
                 </AlertDescription>
               </Alert>
+            )}
+
+            {generatedCredentials && (
+              <div className="bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800/40 rounded-md p-3 flex flex-col gap-2">
+                <p className="text-[11px] font-medium text-amber-800 dark:text-amber-400 flex items-center gap-1">
+                  <span className="inline-block size-1.5 rounded-full bg-amber-500 animate-pulse" />
+                  Email delivery pending — credentials shown only once
+                </p>
+                <div className="text-xs space-y-1">
+                  <div className="flex items-center justify-between">
+                    <span className="text-muted-foreground">Employee ID:</span>
+                    <code className="font-mono font-medium bg-amber-100/50 dark:bg-amber-900/30 px-1.5 py-0.5 rounded text-xs">
+                      {generatedCredentials.employee_id}
+                    </code>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-muted-foreground">Password:</span>
+                    <code className="font-mono font-medium bg-amber-100/50 dark:bg-amber-900/30 px-1.5 py-0.5 rounded text-xs">
+                      {generatedCredentials.password}
+                    </code>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    const text = `Employee ID: ${generatedCredentials.employee_id}\nPassword: ${generatedCredentials.password}`
+                    navigator.clipboard.writeText(text)
+                    toast.success("Credentials copied to clipboard")
+                  }}
+                  className="text-[11px] font-medium text-amber-700 dark:text-amber-400 hover:underline text-left"
+                >
+                  Copy to clipboard
+                </button>
+              </div>
             )}
           </div>
 
