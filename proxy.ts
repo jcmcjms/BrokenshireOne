@@ -10,8 +10,8 @@ const roleRoutes: Record<string, string[]> = {
   admin: ['/dashboard/admin'],
   manager: ['/dashboard/manager', '/dashboard'],
   staff: ['/dashboard/staff', '/dashboard'],
-  faculty: ['/dashboard/faculty', '/dashboard'],
-  student: ['/dashboard/student', '/dashboard'],
+  faculty: ['/dashboard/faculty', '/dashboard', '/dashboard/order'],
+  student: ['/dashboard/student', '/dashboard', '/dashboard/order'],
 };
 
 export function proxy(request: NextRequest) {

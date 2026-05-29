@@ -59,11 +59,13 @@ const navConfig: Record<string, NavItem[]> = {
   ],
   faculty: [
     { label: "Dashboard", href: "/dashboard/faculty", icon: House },
+    { label: "Place Order", href: "/dashboard/order", icon: ShoppingCart },
     { label: "My Orders", href: "/dashboard/faculty/orders", icon: Receipt },
     { label: "My Credits", href: "/dashboard/faculty/credits", icon: CreditCard },
   ],
   student: [
     { label: "Dashboard", href: "/dashboard/student", icon: House },
+    { label: "Place Order", href: "/dashboard/order", icon: ShoppingCart },
     { label: "My Orders", href: "/dashboard/student/orders", icon: Receipt },
   ],
 }

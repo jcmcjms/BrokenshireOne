@@ -8,9 +8,10 @@ import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogTrigger, DialogClose } from "@/components/ui/dialog"
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs"
+import { Separator } from "@/components/ui/separator"
 import { Skeleton } from "@/components/ui/skeleton"
 import { toast } from "sonner"
-import { PlusIcon, PencilIcon, TrashIcon, ImageIcon } from "@phosphor-icons/react"
+import { PlusIcon, PencilIcon, TrashIcon, ImageIcon, FolderPlus, ListBullets } from "@phosphor-icons/react"
 import type { MenuItem, MenuCategory } from "@/types"
 
 export default function ManagerMenuPage() {
@@ -24,6 +25,13 @@ export default function ManagerMenuPage() {
   const [deletingItem, setDeletingItem] = useState<MenuItem | null>(null)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
+
+  const [catDialogOpen, setCatDialogOpen] = useState(false)
+  const [editCatOpen, setEditCatOpen] = useState(false)
+  const [editingCat, setEditingCat] = useState<MenuCategory | null>(null)
+  const [newCatName, setNewCatName] = useState("")
+  const [editCatName, setEditCatName] = useState("")
+  const [catSaving, setCatSaving] = useState(false)
 
   const emptyForm = { name: "", category_id: "", price: "", description: "", available: true }
   const [form, setForm] = useState(emptyForm)
@@ -97,6 +105,62 @@ export default function ManagerMenuPage() {
     }
   }
 
+  const handleAddCategory = async () => {
+    if (!newCatName.trim()) return
+    setCatSaving(true)
+    try {
+      const res = await fetch("/api/menu/categories", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: newCatName.trim(), sort_order: categories.length + 1 }),
+      })
+      if (!res.ok) throw new Error("Failed to create category")
+      toast.success("Category created")
+      setNewCatName("")
+      fetchData()
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to create category")
+    } finally {
+      setCatSaving(false)
+    }
+  }
+
+  const handleRenameCategory = async () => {
+    if (!editingCat || !editCatName.trim()) return
+    setCatSaving(true)
+    try {
+      const res = await fetch(`/api/menu/categories/${editingCat.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: editCatName.trim() }),
+      })
+      if (!res.ok) throw new Error("Failed to rename category")
+      toast.success("Category renamed")
+      setEditCatOpen(false)
+      setEditingCat(null)
+      fetchData()
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to rename")
+    } finally {
+      setCatSaving(false)
+    }
+  }
+
+  const handleDeleteCategory = async (id: string) => {
+    if (!confirm("Delete this category? Items in it will need reassignment.")) return
+    setCatSaving(true)
+    try {
+      const res = await fetch(`/api/menu/categories/${id}`, { method: "DELETE" })
+      if (!res.ok) throw new Error("Failed to delete category")
+      toast.success("Category deleted")
+      fetchData()
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to delete")
+    } finally {
+      setCatSaving(false)
+    }
+  }
+
   const confirmDelete = async () => {
     if (!deletingItem) return
     try {
@@ -130,10 +194,16 @@ export default function ManagerMenuPage() {
           <h1 className="font-heading text-sm font-medium">Menu Management</h1>
           <p className="text-xs text-muted-foreground mt-0.5">Add, edit, and manage menu items</p>
         </div>
-        <Button size="sm" onClick={openAddDialog}>
-          <PlusIcon className="size-4" />
-          Add Item
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button size="sm" variant="outline" onClick={() => setCatDialogOpen(true)} className="gap-1">
+            <FolderPlus className="size-3.5" />
+            Categories
+          </Button>
+          <Button size="sm" onClick={openAddDialog}>
+            <PlusIcon className="size-4" />
+            Add Item
+          </Button>
+        </div>
       </div>
 
       <Tabs value={activeCategory} onValueChange={setActiveCategory}>
@@ -254,6 +324,90 @@ export default function ManagerMenuPage() {
         </DialogContent>
       </Dialog>
 
+      {/* Categories Management */}
+      <Dialog open={catDialogOpen} onOpenChange={setCatDialogOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Manage Categories</DialogTitle>
+            <DialogDescription>Add, edit, or remove menu categories</DialogDescription>
+          </DialogHeader>
+          <div className="flex flex-col gap-3">
+            {/* Add new category */}
+            <div className="flex items-center gap-2">
+              <Input
+                value={newCatName}
+                onChange={(e) => setNewCatName(e.target.value)}
+                placeholder="New category name..."
+                className="h-8 text-xs flex-1"
+              />
+              <Button size="sm" onClick={handleAddCategory} disabled={!newCatName.trim() || catSaving}>
+                <PlusIcon className="size-3.5" />
+                Add
+              </Button>
+            </div>
+            <Separator />
+            {/* Category list */}
+            <div className="flex flex-col gap-1.5 max-h-60 overflow-auto">
+              {categories.map((cat) => (
+                <div key={cat.id} className="flex items-center justify-between p-2 bg-muted/50 text-xs">
+                  <span className="font-medium">{cat.name}</span>
+                  <div className="flex items-center gap-1">
+                    <Button
+                      variant="ghost"
+                      size="icon-xs"
+                      onClick={() => {
+                        setEditingCat(cat)
+                        setEditCatName(cat.name)
+                        setEditCatOpen(true)
+                      }}
+                    >
+                      <PencilIcon className="size-3" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="icon-xs"
+                      onClick={() => handleDeleteCategory(cat.id)}
+                      disabled={catSaving}
+                    >
+                      <TrashIcon className="size-3 text-destructive" />
+                    </Button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+          <DialogFooter>
+            <DialogClose asChild>
+              <Button variant="outline" size="sm">Done</Button>
+            </DialogClose>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit Category Name Dialog */}
+      <Dialog open={editCatOpen} onOpenChange={setEditCatOpen}>
+        <DialogContent className="sm:max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Edit Category</DialogTitle>
+            <DialogDescription>Rename "{editingCat?.name}"</DialogDescription>
+          </DialogHeader>
+          <Input
+            value={editCatName}
+            onChange={(e) => setEditCatName(e.target.value)}
+            className="h-8 text-xs"
+          />
+          <DialogFooter>
+            <DialogClose asChild>
+              <Button variant="outline" size="sm">Cancel</Button>
+            </DialogClose>
+            <Button size="sm" onClick={handleRenameCategory} disabled={!editCatName.trim() || catSaving}>
+              {catSaving ? "Saving..." : "Save"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Item Dialog */}
       <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
         <DialogContent>
           <DialogHeader>
