@@ -17,8 +17,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Canteen Management System",
-  description: "School Canteen Management System with RBAC and JWT Auth",
+  title: "BrokenshireOne",
+  description: "Brokenshire College Toril — One platform for all departments",
 };
 
 export default function RootLayout({

@@ -38,9 +38,9 @@ export default function AdminSettingsPage() {
 
           <div className="flex flex-col gap-1.5">
             <label htmlFor="canteen-name" className="text-xs font-medium text-muted-foreground">
-              Canteen Name
+              Department / Canteen Name
             </label>
-            <Input id="canteen-name" placeholder="Enter canteen name" className="max-w-sm" />
+            <Input id="canteen-name" placeholder="e.g. Canteen, Registrar, Finance" className="max-w-sm" />
           </div>
 
           <Separator />

@@ -14,7 +14,7 @@ function getResend(): Resend {
   return resendClient;
 }
 
-const FROM_EMAIL = process.env.EMAIL_FROM || 'noreply@canteen.system';
+const FROM_EMAIL = process.env.EMAIL_FROM || 'noreply@brokenshireone.edu';
 
 export async function sendCredentialsEmail(params: {
   to: string;
@@ -24,13 +24,13 @@ export async function sendCredentialsEmail(params: {
 }): Promise<void> {
   const { to, name, employeeId, password } = params;
 
-  const loginUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://canteen-management.vercel.app';
+  const loginUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://brokenshireone.vercel.app';
 
   try {
     await getResend().emails.send({
       from: FROM_EMAIL,
       to,
-      subject: 'Your Canteen Management System Account',
+      subject: 'Your BrokenshireOne Account',
       html: `
         <!DOCTYPE html>
         <html>
@@ -54,7 +54,7 @@ export async function sendCredentialsEmail(params: {
         <body>
           <div class="container">
             <div class="header">
-              <h1>Canteen Management System</h1>
+              <h1>BrokenshireOne</h1>
             </div>
             <div class="body">
               <p>Hi <strong>${name}</strong>,</p>
@@ -74,7 +74,7 @@ export async function sendCredentialsEmail(params: {
               <p style="font-size:12px; color:#a1a1aa;">For security, please change your password after your first login.</p>
             </div>
             <div class="footer">
-              <p>Canteen Management System &bull; School Canteen</p>
+              <p>BrokenshireOne &bull; Brokenshire College Toril</p>
             </div>
           </div>
         </body>

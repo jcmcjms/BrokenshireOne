@@ -107,9 +107,9 @@ function SidebarContent({
     <div className="flex h-full flex-col">
       <div className="flex h-12 items-center gap-2 border-b border-border px-3">
         <div className="flex size-7 items-center justify-center bg-primary text-primary-foreground">
-          <span className="text-[10px] font-bold">CM</span>
+          <span className="text-[10px] font-bold">BO</span>
         </div>
-        <span className="text-xs font-medium">Canteen MS</span>
+        <span className="text-xs font-medium">BrokenshireOne</span>
       </div>
 
       <nav className="flex-1 space-y-0.5 p-2">

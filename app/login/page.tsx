@@ -51,7 +51,7 @@ export default function LoginPage() {
               <span className="text-xs font-bold">CM</span>
             </div>
             <div>
-              <CardTitle>Canteen Management System</CardTitle>
+              <CardTitle>BrokenshireOne</CardTitle>
               <CardDescription>Sign in to your account</CardDescription>
             </div>
           </div>
