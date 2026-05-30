@@ -29,16 +29,22 @@ interface MobileLayoutProps {
   children: React.ReactNode
   /** Overflow nav items for "More" menu */
   overflowItems: MobileTab[]
+  /** Optional logout handler (for animated logout from parent) */
+  onLogout?: () => void
 }
 
-export function MobileLayout({ user, children, overflowItems }: MobileLayoutProps) {
+export function MobileLayout({ user, children, overflowItems, onLogout }: MobileLayoutProps) {
   const [moreOpen, setMoreOpen] = useState(false)
   const pathname = usePathname()
   const router = useRouter()
 
   async function handleLogout() {
-    await fetch("/api/auth/logout", { method: "POST" })
-    router.push("/login")
+    if (onLogout) {
+      onLogout()
+    } else {
+      await fetch("/api/auth/logout", { method: "POST" })
+      router.push("/login")
+    }
   }
 
   // Extract page title from pathname
@@ -112,7 +118,7 @@ export function MobileLayout({ user, children, overflowItems }: MobileLayoutProp
           className="rounded-t-xl p-4 pb-8"
           style={{ paddingBottom: "env(safe-area-inset-bottom, 16px)" }}
         >
-          <MoreMenu items={overflowItems} user={user} onClose={() => setMoreOpen(false)} />
+          <MoreMenu items={overflowItems} user={user} onClose={() => setMoreOpen(false)} onLogout={onLogout} />
         </SheetContent>
       </Sheet>
     </div>

@@ -22,6 +22,19 @@ import { NotificationBellWidget } from "@/components/notifications/notification-
 import { useMobile } from "@/components/mobile/hooks/use-mobile"
 import { MobileLayout } from "@/components/mobile/mobile-layout"
 import { mobileNavConfig } from "@/components/mobile/bottom-nav"
+import { motion } from "motion/react"
+
+function LogoutOverlay() {
+  return (
+    <motion.div
+      className="fixed inset-0 z-[100] bg-background"
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      transition={{ duration: 0.2 }}
+    />
+  )
+}
 import type { MobileTab } from "@/components/mobile/bottom-nav"
 import {
   House,
@@ -145,17 +158,23 @@ function SidebarContent({
   pathname,
   user,
   onNavigate,
+  onLogout,
 }: {
   navItems: NavItem[]
   pathname: string
   user: User | null
   onNavigate?: () => void
+  onLogout?: () => void
 }) {
   const router = useRouter()
 
   async function handleLogout() {
-    await fetch("/api/auth/logout", { method: "POST" })
-    router.push("/login")
+    if (onLogout) {
+      onLogout()
+    } else {
+      await fetch("/api/auth/logout", { method: "POST" })
+      router.push("/login")
+    }
   }
 
   return (
@@ -219,6 +238,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const [user, setUser] = useState<User | null>(null)
   const [loading, setLoading] = useState(true)
   const [mobileOpen, setMobileOpen] = useState(false)
+  const [exiting, setExiting] = useState(false)
   const isMobile = useMobile()
 
   useEffect(() => {
@@ -245,6 +265,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
   async function handleLogout() {
     await fetch("/api/auth/logout", { method: "POST" })
+    setExiting(true)
+    await new Promise((r) => setTimeout(r, 250))
     router.push("/login")
   }
 
@@ -263,9 +285,10 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     const config = mobileNavConfig[user.role] ?? { primary: [], overflow: [] }
     return (
       <NotificationProvider user={user}>
-        <MobileLayout user={user} overflowItems={config.overflow}>
+        <MobileLayout user={user} overflowItems={config.overflow} onLogout={handleLogout}>
           {children}
         </MobileLayout>
+        {exiting && <LogoutOverlay />}
       </NotificationProvider>
     )
   }
@@ -273,9 +296,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   // Desktop layout
   return (
     <NotificationProvider user={user}>
-      <div className="flex min-h-screen">
+      <div className="flex min-h-screen relative">
         <aside className="hidden w-48 shrink-0 border-r border-border bg-sidebar md:flex md:flex-col">
-          <SidebarContent navItems={navItems} pathname={pathname} user={user} />
+          <SidebarContent navItems={navItems} pathname={pathname} user={user} onLogout={handleLogout} />
         </aside>
 
         <div className="flex flex-1 flex-col">
@@ -293,6 +316,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                     pathname={pathname}
                     user={user}
                     onNavigate={() => setMobileOpen(false)}
+                    onLogout={handleLogout}
                   />
                 </SheetContent>
               </Sheet>
@@ -332,6 +356,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           <main className="flex-1 overflow-auto p-4 md:p-6">{children}</main>
         </div>
       </div>
+      {exiting && <LogoutOverlay />}
     </NotificationProvider>
   )
 }

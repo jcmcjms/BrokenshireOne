@@ -6,6 +6,7 @@ import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/com
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { SignIn, IdentificationCard, Lock } from "@phosphor-icons/react"
+import { motion } from "motion/react"
 import type { ApiResponse } from "@/types"
 
 export default function LoginPage() {
@@ -14,6 +15,7 @@ export default function LoginPage() {
   const [password, setPassword] = useState("")
   const [error, setError] = useState("")
   const [loading, setLoading] = useState(false)
+  const [exiting, setExiting] = useState(false)
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault()
@@ -31,20 +33,37 @@ export default function LoginPage() {
 
       if (!res.ok || !data.success) {
         setError(data.error || data.message || "Login failed")
+        setLoading(false)
         return
       }
 
+      // Animate card out before navigating
+      setExiting(true)
+      await new Promise((r) => setTimeout(r, 250))
       router.push("/dashboard")
     } catch {
       setError("An unexpected error occurred. Please try again.")
-    } finally {
       setLoading(false)
     }
   }
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-zinc-50 to-zinc-100 p-4 dark:from-zinc-950 dark:to-zinc-900">
-      <Card className="w-full max-w-sm">
+      <motion.div
+        className="w-full max-w-sm"
+        initial={{ opacity: 0, scale: 0.95 }}
+        animate={
+          exiting
+            ? { opacity: 0, scale: 0.9, y: -20 }
+            : { opacity: 1, scale: 1, y: 0 }
+        }
+        transition={
+          exiting
+            ? { duration: 0.25, ease: "easeInOut" }
+            : { type: "spring", stiffness: 250, damping: 20 }
+        }
+      >
+      <Card>
         <CardHeader>
           <div className="flex items-center gap-3">
             <div className="flex size-8 items-center justify-center bg-primary text-primary-foreground">
@@ -111,6 +130,7 @@ export default function LoginPage() {
           </form>
         </CardContent>
       </Card>
+      </motion.div>
     </div>
   )
 }

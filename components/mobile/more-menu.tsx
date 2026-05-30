@@ -17,18 +17,23 @@ interface MoreMenuProps {
   items: OverflowItem[]
   user: User
   onClose: () => void
+  onLogout?: () => void
 }
 
 /**
  * The "More" overflow panel shown as a bottom sheet.
  * Displays extra nav items in a grid + Settings/Logout at the bottom.
  */
-export function MoreMenu({ items, user, onClose }: MoreMenuProps) {
+export function MoreMenu({ items, user, onClose, onLogout }: MoreMenuProps) {
   const router = useRouter()
 
   async function handleLogout() {
-    await fetch("/api/auth/logout", { method: "POST" })
-    router.push("/login")
+    if (onLogout) {
+      onLogout()
+    } else {
+      await fetch("/api/auth/logout", { method: "POST" })
+      router.push("/login")
+    }
   }
 
   return (
