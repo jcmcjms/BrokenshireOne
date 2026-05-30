@@ -174,6 +174,7 @@ export interface SalaryDeductionLimit {
   id: string;
   user_id: string;
   user_name?: string;
+  user_role?: string;
   month: number;
   year: number;
   max_deduction_limit: number;

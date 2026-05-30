@@ -339,7 +339,9 @@ export default function ManagerSalaryPage() {
                           <TableRow key={limit.user_id}>
                             <TableCell className="font-medium">{limit.user_name ?? "—"}</TableCell>
                             <TableCell>
-                              <Badge variant="outline" className="text-[10px]">Faculty</Badge>
+                              <Badge variant={limit.user_role === "staff" ? "secondary" : "outline"} className="text-[10px] capitalize">
+                                {limit.user_role ?? "Faculty"}
+                              </Badge>
                             </TableCell>
                             <TableCell>
                               <span className={cn(limit.max_deduction_limit === 0 ? "text-muted-foreground" : "")}>

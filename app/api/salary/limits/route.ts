@@ -43,10 +43,15 @@ export async function GET(request: NextRequest) {
     const limitMap = new Map(limits.map((l) => [l.user_id, l]));
     const merged = users.map((user) => {
       const existing = limitMap.get(user.id);
-      return existing ?? {
+      if (existing) {
+        // Ensure role from user list overrides any missing value
+        return { ...existing, user_role: existing.user_role ?? user.role };
+      }
+      return {
         id: null,
         user_id: user.id,
         user_name: user.name,
+        user_role: user.role,
         month,
         year,
         max_deduction_limit: 0,

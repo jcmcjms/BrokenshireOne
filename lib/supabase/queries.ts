@@ -699,18 +699,22 @@ export async function getMenuItemByBarcode(barcode: string): Promise<DbMenuItem 
 export async function getSalaryDeductionLimits(month: number, year: number) {
   const { data, error } = await supabase
     .from('salary_deduction_limits')
-    .select('*, users(name)')
+    .select('*, users!salary_deduction_limits_user_id_fkey(name, roles!users_role_id_fkey(name))')
     .eq('month', month)
     .eq('year', year)
     .order('user_id');
 
   if (error) throw error;
-  return ((data as unknown as DbSalaryDeductionLimit[]) ?? []).map((item) => ({
-    ...item,
-    user_name: (item as any).users?.name ?? null,
-    users: undefined,
-    remaining: (item.max_deduction_limit ?? 0) - (item.total_deducted ?? 0),
-  }));
+  return ((data as unknown as DbSalaryDeductionLimit[]) ?? []).map((item) => {
+    const userData = (item as any).users;
+    return {
+      ...item,
+      user_name: userData?.name ?? null,
+      user_role: userData?.roles?.name ?? null,
+      users: undefined,
+      remaining: (item.max_deduction_limit ?? 0) - (item.total_deducted ?? 0),
+    };
+  });
 }
 
 export async function upsertSalaryDeductionLimit(
