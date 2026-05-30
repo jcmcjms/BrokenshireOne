@@ -130,7 +130,7 @@ export interface DbUserPermission {
   id: string;
   user_id: string;
   permission_id: string;
-  grant: boolean;
+  is_granted: boolean;
   created_at: string;
   permissions?: { code: string } | DbPermission;
 }
