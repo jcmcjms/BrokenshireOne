@@ -24,7 +24,7 @@ export async function PUT(
     }
 
     const { id } = await params;
-    const { category_id, name, description, price, image_url, available, stock_quantity, barcode } = await request.json();
+    const { category_id, name, description, price, image_url, available, stock_quantity, barcode, unit } = await request.json();
     const updates: Record<string, unknown> = {};
 
     if (category_id !== undefined) updates.category_id = category_id;
@@ -35,6 +35,7 @@ export async function PUT(
     if (available !== undefined) updates.available = available;
     if (stock_quantity !== undefined) updates.stock_quantity = stock_quantity;
     if (barcode !== undefined) updates.barcode = barcode;
+    if (unit !== undefined) updates.unit = unit;
 
     if (Object.keys(updates).length === 0) {
       return NextResponse.json<ApiResponse>(
@@ -68,6 +69,11 @@ export async function PUT(
     );
   }
 }
+
+/**
+ * PATCH is an alias for PUT — the frontend sends PATCH for partial updates.
+ */
+export const PATCH = PUT;
 
 export async function DELETE(
   _request: NextRequest,

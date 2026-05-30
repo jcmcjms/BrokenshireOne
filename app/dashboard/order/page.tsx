@@ -344,7 +344,7 @@ export default function OrderPage() {
                           )}
                           <div className="mt-auto flex items-center justify-between">
                             <span className="text-sm font-heading font-medium">
-                              {formatPrice(item.price)}
+                              {formatPrice(item.price)} / {item.unit}
                             </span>
                             {inCart && (
                               <Badge variant="default" className="text-[10px]">

@@ -16,6 +16,7 @@ import { ImageUploader } from "@/components/ui/image-uploader"
 import { BarcodeScanner } from "@/components/ui/barcode-scanner"
 import { BulkImportDialog } from "@/components/ui/bulk-import-dialog"
 import { formatPrice } from "@/lib/utils"
+import { MENU_UNITS, CATEGORY_DEFAULT_UNIT } from "@/lib/units"
 import type { MenuItem, MenuCategory } from "@/types"
 
 export default function ManagerMenuPage() {
@@ -40,7 +41,7 @@ export default function ManagerMenuPage() {
   const [scannerOpen, setScannerOpen] = useState(false)
   const [importDialogOpen, setImportDialogOpen] = useState(false)
 
-  const emptyForm = { name: "", category_id: "", price: "", description: "", available: true, image_url: "", barcode: "" }
+  const emptyForm = { name: "", category_id: "", price: "", description: "", available: true, image_url: "", barcode: "", unit: "" }
   const [form, setForm] = useState(emptyForm)
 
   const fetchData = useCallback(async () => {
@@ -80,6 +81,7 @@ export default function ManagerMenuPage() {
       available: item.available,
       image_url: item.image_url ?? "",
       barcode: item.barcode ?? "",
+      unit: item.unit ?? "",
     })
     setItemDialogOpen(true)
   }
@@ -99,6 +101,7 @@ export default function ManagerMenuPage() {
         available: form.available,
         image_url: form.image_url || null,
         barcode: form.barcode || null,
+        unit: form.unit || "serving",
       }
       const res = await fetch(editingItem ? `/api/menu/items/${editingItem.id}` : "/api/menu/items", {
         method: editingItem ? "PATCH" : "POST",
@@ -114,6 +117,16 @@ export default function ManagerMenuPage() {
     } finally {
       setSaving(false)
     }
+  }
+
+  const handleCategoryChange = (value: string) => {
+    const cat = categories.find(c => c.id === value)
+    const defaultUnit = CATEGORY_DEFAULT_UNIT[cat?.name ?? ""] ?? "serving"
+    setForm(prev => ({
+      ...prev,
+      category_id: value,
+      unit: prev.unit || defaultUnit,
+    }))
   }
 
   const handleAddCategory = async () => {
@@ -302,7 +315,7 @@ export default function ManagerMenuPage() {
                         </Badge>
                       )}
                       <div className="flex items-center justify-between">
-                        <span className="text-xs font-medium">{formatPrice(item.price)}</span>
+                        <span className="text-xs font-medium">{formatPrice(item.price)} / {item.unit}</span>
                         <Badge variant={item.available ? "default" : "secondary"} className="text-[10px]">
                           {item.available ? "Available" : "Unavailable"}
                         </Badge>
@@ -344,7 +357,7 @@ export default function ManagerMenuPage() {
             </div>
             <div className="flex flex-col gap-1">
               <label className="text-xs text-muted-foreground">Category *</label>
-              <Select value={form.category_id} onValueChange={(v) => setForm({ ...form, category_id: v })}>
+              <Select value={form.category_id} onValueChange={handleCategoryChange}>
                 <SelectTrigger className="w-full">
                   <SelectValue placeholder="Select category" />
                 </SelectTrigger>
@@ -358,6 +371,19 @@ export default function ManagerMenuPage() {
             <div className="flex flex-col gap-1">
               <label className="text-xs text-muted-foreground">Price *</label>
               <Input value={form.price} onChange={(e) => setForm({ ...form, price: e.target.value })} placeholder="0.00" type="number" step="0.01" />
+            </div>
+            <div className="flex flex-col gap-1">
+              <label className="text-xs text-muted-foreground">Unit</label>
+              <Select value={form.unit} onValueChange={(v) => setForm({ ...form, unit: v })}>
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Select unit" />
+                </SelectTrigger>
+                <SelectContent>
+                  {MENU_UNITS.map((u) => (
+                    <SelectItem key={u.value} value={u.value}>{u.label}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
             <div className="flex flex-col gap-1">
               <label className="text-xs text-muted-foreground">Description</label>
