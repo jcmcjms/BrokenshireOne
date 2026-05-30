@@ -44,7 +44,7 @@ export async function GET() {
       ),
       active_orders: activeRes.count ?? 0,
       total_users: 0,
-      low_stock_items: 0,
+      low_stock_items: { inventory: 0, menu_items: 0, total: 0 },
       pending_credits: 0,
     };
 

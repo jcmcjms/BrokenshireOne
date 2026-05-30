@@ -28,6 +28,7 @@ import {
   ShoppingCart,
   SignOut,
   List,
+  PackageIcon,
 } from "@phosphor-icons/react"
 
 interface NavItem {
@@ -49,6 +50,7 @@ const navConfig: Record<string, NavItem[]> = {
   manager: [
     { label: "Dashboard", href: "/dashboard/manager", icon: House },
     { label: "Menu", href: "/dashboard/manager/menu", icon: ForkKnife },
+    { label: "Inventory", href: "/dashboard/manager/inventory", icon: PackageIcon },
     { label: "Orders", href: "/dashboard/manager/orders", icon: Receipt },
     { label: "Credits", href: "/dashboard/manager/credits", icon: CreditCard },
     { label: "Reports", href: "/dashboard/manager/reports", icon: ChartBar },
@@ -80,6 +82,7 @@ function getPageTitle(pathname: string): string {
   if (pathname.includes("/menu")) return "Menu Management"
   if (pathname.includes("/orders")) return "Orders"
   if (pathname.includes("/credits")) return "Credits"
+  if (pathname.includes("/inventory")) return "Inventory Management"
   if (pathname.includes("/reports")) return "Reports"
   if (pathname.includes("/settings")) return "Settings"
   return "Dashboard"

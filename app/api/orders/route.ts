@@ -160,6 +160,25 @@ export async function POST(request: NextRequest) {
       orderItems,
     );
 
+    // Decrement stock for each item in the order
+    const menuDb = supabase.from('menu_items') as any;
+    for (const item of orderItems) {
+      const { data: menuItem, error: fetchError } = await menuDb
+        .select('stock_quantity, available')
+        .eq('id', item.item_id)
+        .single();
+
+      if (!fetchError && menuItem) {
+        const currentStock = (menuItem as any).stock_quantity ?? 0;
+        const newStock = Math.max(0, currentStock - item.quantity);
+        const menuUpdates: Record<string, unknown> = { stock_quantity: newStock };
+        if (newStock === 0) {
+          menuUpdates.available = false;
+        }
+        await menuDb.update(menuUpdates).eq('id', item.item_id);
+      }
+    }
+
     if (payment_method === 'credit') {
       const { month, year } = getCurrentMonthYear();
       await deductCredit(targetUserId, total, order.id, month, year);

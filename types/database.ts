@@ -52,6 +52,7 @@ export interface DbMenuItem {
   price: number;
   image_url: string | null;
   available: boolean;
+  stock_quantity: number;
   created_at: string;
   updated_at: string;
   menu_categories?: { name: string } | DbMenuCategory;
@@ -111,4 +112,29 @@ export interface DbCreditTransaction {
   year: number;
   notes: string | null;
   created_at: string;
+}
+
+export interface DbInventoryItem {
+  id: string;
+  name: string;
+  category: string;
+  quantity: number;
+  unit: string;
+  min_stock_level: number;
+  unit_cost: number | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface DbInventoryMovement {
+  id: string;
+  item_id: string;
+  type: string;
+  quantity_change: number;
+  previous_quantity: number;
+  new_quantity: number;
+  reason: string | null;
+  performed_by: string;
+  created_at: string;
+  users?: { name: string } | DbUser;
 }
