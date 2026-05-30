@@ -61,7 +61,7 @@ const routePermissionMap: Record<string, string[]> = {
   "/dashboard/student/menu": ["menu.view"],
   "/dashboard/student/orders": ["orders.view_own"],
   "/dashboard/faculty/menu": ["menu.view"],
-  "/dashboard/order": ["orders.process"],
+  "/dashboard/order": [],
 }
 
 /**

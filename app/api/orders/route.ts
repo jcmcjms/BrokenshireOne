@@ -74,13 +74,6 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    if (!session.permissions.includes('orders.process')) {
-      return NextResponse.json<ApiResponse>(
-        { success: false, error: 'Forbidden' },
-        { status: 403 },
-      );
-    }
-
     const { user_id, items, payment_method, notes, cash_given } = await request.json();
 
     if (!items || !Array.isArray(items) || items.length === 0) {
