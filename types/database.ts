@@ -126,6 +126,15 @@ export interface DbInventoryItem {
   updated_at: string;
 }
 
+export interface DbUserPermission {
+  id: string;
+  user_id: string;
+  permission_id: string;
+  grant: boolean;
+  created_at: string;
+  permissions?: { code: string } | DbPermission;
+}
+
 export interface DbInventoryMovement {
   id: string;
   item_id: string;

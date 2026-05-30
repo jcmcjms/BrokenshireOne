@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getUserByEmployeeId, getRolePermissions } from '@/lib/supabase/queries';
+import { getUserByEmployeeId, getEffectivePermissions } from '@/lib/supabase/queries';
 import { verifyPassword } from '@/lib/auth/password';
 import { setSession } from '@/lib/auth/session';
 import type { ApiResponse } from '@/types';
@@ -40,7 +40,7 @@ export async function POST(request: NextRequest) {
     }
 
     const roleName = (user as any).roles?.name ?? 'student';
-    const permissions = await getRolePermissions(user.role_id);
+    const permissions = await getEffectivePermissions(user.id);
 
     await setSession({
       user_id: user.id,

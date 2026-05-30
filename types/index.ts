@@ -11,6 +11,7 @@ export interface User {
   active: boolean;
   avatar_url: string | null;
   created_at: string;
+  permissions?: string[];
 }
 
 export interface MenuCategory {
@@ -122,6 +123,28 @@ export interface InventoryMovement {
   performed_by: string;
   performed_by_name?: string;
   created_at: string;
+}
+
+export interface UserPermissionOverride {
+  user_id: string;
+  permission_id: string;
+  code: string;
+  grant: boolean;
+}
+
+export interface UserPermissionsResponse {
+  user_id: string;
+  role: string;
+  role_permissions: string[];
+  overrides: Record<string, boolean | null>;
+  effective_permissions: string[];
+}
+
+export interface PermissionInfo {
+  id: string;
+  code: string;
+  description: string;
+  module: string;
 }
 
 export interface LowStockSummary {

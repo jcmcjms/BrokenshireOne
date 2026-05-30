@@ -37,6 +37,43 @@ interface NavItem {
   icon: React.ElementType
 }
 
+/**
+ * Maps each dashboard route to the required permission(s).
+ * Empty array = always visible to users with that role.
+ * Non-empty = user must have at least one of these permissions.
+ */
+const routePermissionMap: Record<string, string[]> = {
+  "/dashboard/admin": [],
+  "/dashboard/admin/users": ["users.manage"],
+  "/dashboard/admin/settings": [],
+  "/dashboard/manager": [],
+  "/dashboard/manager/menu": ["menu.view"],
+  "/dashboard/manager/inventory": ["menu.manage"],
+  "/dashboard/manager/orders": ["orders.view_all"],
+  "/dashboard/manager/credits": ["credits.manage"],
+  "/dashboard/manager/reports": ["reports.view"],
+  "/dashboard/staff": ["orders.process"],
+  "/dashboard/staff/orders": ["orders.view_own"],
+  "/dashboard/faculty": [],
+  "/dashboard/faculty/orders": ["orders.view_own"],
+  "/dashboard/faculty/credits": ["credits.view_own"],
+  "/dashboard/student": [],
+  "/dashboard/student/orders": ["orders.view_own"],
+  "/dashboard/order": ["orders.process"],
+}
+
+/**
+ * Checks if a user can see a nav item based on their permissions.
+ * - If routePermissionMap has no requirements → always visible
+ * - If routePermissionMap has requirements → user must have at least one
+ */
+function canSeeNavItem(user: User | null, href: string): boolean {
+  const requiredPerms = routePermissionMap[href]
+  if (!requiredPerms || requiredPerms.length === 0) return true
+  const userPerms = user?.permissions ?? []
+  return requiredPerms.some((p) => userPerms.includes(p))
+}
+
 const navConfig: Record<string, NavItem[]> = {
   admin: [
     { label: "Dashboard", href: "/dashboard/admin", icon: House },
@@ -116,7 +153,7 @@ function SidebarContent({
       </div>
 
       <nav className="flex-1 space-y-0.5 p-2">
-        {navItems.map((item) => {
+        {navItems.filter((item) => canSeeNavItem(user, item.href)).map((item) => {
           const Icon = item.icon
           const isActive = pathname === item.href
           return (
