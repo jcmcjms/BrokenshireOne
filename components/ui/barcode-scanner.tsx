@@ -1,11 +1,11 @@
 "use client"
 
 import { useEffect, useRef, useState } from "react"
-import { Html5Qrcode } from "html5-qrcode"
+import { Html5Qrcode, Html5QrcodeSupportedFormats } from "html5-qrcode"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Camera, Scan, XCircle, CameraRotate } from "@phosphor-icons/react"
+import { Camera, Scan, XCircle } from "@phosphor-icons/react"
 
 interface BarcodeScannerProps {
   open: boolean
@@ -15,12 +15,31 @@ interface BarcodeScannerProps {
 
 const SCANNER_ELEMENT_ID = "barcode-scanner-element"
 
+/**
+ * All barcode formats the scanner will try to detect.
+ * html5-qrcode defaults to QR-only; we opt in to everything.
+ */
+const SUPPORTED_FORMATS = [
+  Html5QrcodeSupportedFormats.QR_CODE,
+  Html5QrcodeSupportedFormats.EAN_13,
+  Html5QrcodeSupportedFormats.EAN_8,
+  Html5QrcodeSupportedFormats.UPC_A,
+  Html5QrcodeSupportedFormats.UPC_E,
+  Html5QrcodeSupportedFormats.CODE_39,
+  Html5QrcodeSupportedFormats.CODE_93,
+  Html5QrcodeSupportedFormats.CODE_128,
+  Html5QrcodeSupportedFormats.CODABAR,
+  Html5QrcodeSupportedFormats.ITF,
+  Html5QrcodeSupportedFormats.DATA_MATRIX,
+  Html5QrcodeSupportedFormats.AZTEC,
+  Html5QrcodeSupportedFormats.PDF_417,
+  Html5QrcodeSupportedFormats.MAXICODE,
+]
+
 export function BarcodeScanner({ open, onScan, onClose }: BarcodeScannerProps) {
   const [manualInput, setManualInput] = useState("")
   const [error, setError] = useState<string | null>(null)
   const [scanning, setScanning] = useState(false)
-  const [cameras, setCameras] = useState<{ id: string; label: string }[]>([])
-  const [selectedCamera, setSelectedCamera] = useState<string | undefined>(undefined)
   const scannerRef = useRef<Html5Qrcode | null>(null)
   const containerRef = useRef<HTMLDivElement>(null)
 
@@ -36,33 +55,32 @@ export function BarcodeScanner({ open, onScan, onClose }: BarcodeScannerProps) {
     }
   }
 
-  // Start scanner with a given camera ID
-  const startScanner = async (cameraId?: string) => {
+  // Start scanner — always uses the back camera (facingMode: "environment")
+  const startScanner = async () => {
     setError(null)
     setScanning(true)
 
     try {
-      // Clean up previous instance
+      // Clean up any previous scanner element content
       const existingEl = document.getElementById(SCANNER_ELEMENT_ID)
       if (existingEl) {
         existingEl.innerHTML = ""
       }
 
-      const scanner = new Html5Qrcode(SCANNER_ELEMENT_ID)
+      // Pass formatsToSupport in constructor (Html5QrcodeConfigs)
+      const scanner = new Html5Qrcode(SCANNER_ELEMENT_ID, {
+        verbose: false,
+        formatsToSupport: SUPPORTED_FORMATS,
+        useBarCodeDetectorIfSupported: true,
+      })
       scannerRef.current = scanner
 
-      const config = {
-        fps: 10,
-        qrbox: { width: 250, height: 150 },
-      }
-
-      const cameraConfig = cameraId
-        ? { deviceId: { exact: cameraId } }
-        : { facingMode: "environment" as const }
-
       await scanner.start(
-        cameraConfig,
-        config,
+        { facingMode: { exact: "environment" } },
+        {
+          fps: 15,
+          qrbox: { width: 300, height: 120 },
+        },
         (decodedText) => {
           // Successful scan
           onScan(decodedText)
@@ -75,12 +93,37 @@ export function BarcodeScanner({ open, onScan, onClose }: BarcodeScannerProps) {
       )
     } catch (err: any) {
       console.error("[BarcodeScanner] start error:", err)
-      setError(err?.message ?? "Failed to start camera")
-      setScanning(false)
+      // If exact facingMode fails, try without exact
+      try {
+        const scanner = new Html5Qrcode(SCANNER_ELEMENT_ID, {
+          verbose: false,
+          formatsToSupport: SUPPORTED_FORMATS,
+          useBarCodeDetectorIfSupported: true,
+        })
+        scannerRef.current = scanner
+
+        await scanner.start(
+          { facingMode: "environment" },
+          {
+            fps: 15,
+            qrbox: { width: 300, height: 120 },
+          },
+          (decodedText) => {
+            onScan(decodedText)
+            stopScanner().catch(() => {})
+            setScanning(false)
+          },
+          () => {},
+        )
+      } catch (err2: any) {
+        console.error("[BarcodeScanner] fallback start error:", err2)
+        setError(err2?.message ?? "Failed to start camera. You can enter the barcode manually.")
+        setScanning(false)
+      }
     }
   }
 
-  // Enumerate cameras and start scanner on open
+  // Start scanner when dialog opens
   useEffect(() => {
     if (!open) {
       setManualInput("")
@@ -90,34 +133,14 @@ export function BarcodeScanner({ open, onScan, onClose }: BarcodeScannerProps) {
       return
     }
 
-    // Enumerate available cameras
-    Html5Qrcode.getCameras()
-      .then((devices) => {
-        setCameras(devices)
-        // Start with the back-facing / environment camera
-        const backCam = devices.find(
-          (d) => d.label.toLowerCase().includes("back") || d.label.toLowerCase().includes("environment"),
-        )
-        startScanner(backCam?.id)
-      })
-      .catch((err) => {
-        console.error("[BarcodeScanner] getCameras error:", err)
-        setError("Camera access denied or no camera found. You can enter the barcode manually.")
-      })
+    // Small delay so the DOM element is available
+    const timer = setTimeout(() => startScanner(), 300)
 
     return () => {
+      clearTimeout(timer)
       stopScanner()
     }
   }, [open])
-
-  const handleSwitchCamera = () => {
-    if (cameras.length < 2) return
-    const currentIdx = cameras.findIndex((c) => c.id === selectedCamera)
-    const nextIdx = (currentIdx + 1) % cameras.length
-    const nextCam = cameras[nextIdx]
-    setSelectedCamera(nextCam.id)
-    stopScanner().then(() => startScanner(nextCam.id))
-  }
 
   const handleManualSubmit = () => {
     const val = manualInput.trim()
@@ -165,20 +188,13 @@ export function BarcodeScanner({ open, onScan, onClose }: BarcodeScannerProps) {
             )}
             {scanning && (
               <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                <div className="w-3/4 h-1/3 border-2 border-primary/60 rounded-lg animate-pulse" />
+                <div className="w-3/4 h-1/4 border-2 border-primary/60 rounded-lg animate-pulse" />
               </div>
             )}
           </div>
 
-          {/* Camera controls */}
-          <div className="flex items-center justify-between gap-2">
-            {cameras.length > 1 && (
-              <Button variant="outline" size="sm" onClick={handleSwitchCamera} className="gap-1">
-                <CameraRotate className="size-3.5" />
-                Switch Camera
-              </Button>
-            )}
-            <div className="flex-1" />
+          {/* Stop scanner button */}
+          <div className="flex items-center justify-end gap-2">
             {scanning && (
               <Button variant="outline" size="sm" onClick={() => { stopScanner(); setScanning(false) }}>
                 Stop Scanner
