@@ -1,10 +1,10 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { getSession } from '@/lib/auth/session';
 import { supabase } from '@/lib/supabase/client';
 import { getDashboardStats } from '@/lib/supabase/queries';
 import type { ApiResponse, DashboardStats } from '@/types';
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
     const session = await getSession();
     if (!session) {
@@ -14,12 +14,15 @@ export async function GET() {
       );
     }
 
+    const { searchParams } = new URL(request.url);
+    const date = searchParams.get('date') ?? undefined;
+
     if (session.role === 'admin' || session.role === 'manager') {
-      const stats = await getDashboardStats();
+      const stats = await getDashboardStats(date);
       return NextResponse.json<ApiResponse>({ success: true, data: stats });
     }
 
-    const today = new Date().toISOString().split('T')[0];
+    const today = date ?? new Date().toISOString().split('T')[0];
 
     const dbOrders = supabase.from('orders') as any;
     const [ordersRes, activeRes] = await Promise.all([

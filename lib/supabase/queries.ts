@@ -127,13 +127,18 @@ export async function getCreditTransactions(userId: string, month: number, year:
   return (data as unknown as DbCreditTransaction[]) ?? [];
 }
 
-export async function getDashboardStats() {
-  const today = new Date().toISOString().split('T')[0];
+export async function getDashboardStats(date?: string) {
+  const filterDate = date ?? new Date().toISOString().split('T')[0];
+  const nextDay = new Date(filterDate);
+  nextDay.setDate(nextDay.getDate() + 1);
+  const nextDayStr = nextDay.toISOString().split('T')[0];
+
   const [ordersRes, activeRes, usersRes, pendingRes] = await Promise.all([
     supabase
       .from('orders')
       .select('id, total', { count: 'exact', head: false })
-      .gte('created_at', today),
+      .gte('created_at', filterDate)
+      .lt('created_at', nextDayStr),
     supabase
       .from('orders')
       .select('id', { count: 'exact', head: true })

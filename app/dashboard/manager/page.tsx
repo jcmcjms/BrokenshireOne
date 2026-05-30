@@ -1,12 +1,13 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useState, useCallback } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert"
+import { DatePicker } from "@/components/ui/date-picker"
 import { ClipboardTextIcon, CurrencyDollarIcon, ShoppingCartIcon, PackageIcon, PlusIcon, ListIcon, CreditCardIcon, WarningCircleIcon } from "@phosphor-icons/react"
 import { formatPrice } from "@/lib/utils"
 import type { DashboardStats, Order } from "@/types"
@@ -16,28 +17,33 @@ export default function ManagerDashboardPage() {
   const [recentOrders, setRecentOrders] = useState<Order[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [selectedDate, setSelectedDate] = useState(() => new Date().toISOString().split("T")[0])
+
+  const fetchData = useCallback(async () => {
+    setLoading(true)
+    setError(null)
+    try {
+      const dateParam = selectedDate ? `date=${selectedDate}` : ""
+      const [statsRes, ordersRes] = await Promise.all([
+        fetch(`/api/dashboard/stats?${dateParam}`),
+        fetch(`/api/orders?limit=5&${dateParam}`),
+      ])
+      if (!statsRes.ok) throw new Error("Failed to fetch stats")
+      if (!ordersRes.ok) throw new Error("Failed to fetch orders")
+      const statsData = await statsRes.json()
+      const ordersData = await ordersRes.json()
+      setStats(statsData.data ?? statsData)
+      setRecentOrders(ordersData.data ?? ordersData)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "An error occurred")
+    } finally {
+      setLoading(false)
+    }
+  }, [selectedDate])
 
   useEffect(() => {
-    async function fetchData() {
-      try {
-        const [statsRes, ordersRes] = await Promise.all([
-          fetch("/api/dashboard/stats"),
-          fetch("/api/orders?limit=5"),
-        ])
-        if (!statsRes.ok) throw new Error("Failed to fetch stats")
-        if (!ordersRes.ok) throw new Error("Failed to fetch orders")
-        const statsData = await statsRes.json()
-        const ordersData = await ordersRes.json()
-        setStats(statsData.data ?? statsData)
-        setRecentOrders(ordersData.data ?? ordersData)
-      } catch (err) {
-        setError(err instanceof Error ? err.message : "An error occurred")
-      } finally {
-        setLoading(false)
-      }
-    }
     fetchData()
-  }, [])
+  }, [fetchData])
 
   if (error) {
     return (
@@ -55,9 +61,11 @@ export default function ManagerDashboardPage() {
     ? (stats.low_stock_items as any).total ?? 0
     : 0;
 
+  const dateLabel = new Date(selectedDate + "T00:00:00").toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" })
+
   const statCards = [
-    { label: "Today's Orders", value: stats?.total_orders_today, icon: ClipboardTextIcon },
-    { label: "Today's Revenue", value: stats?.total_revenue_today != null ? formatPrice(stats.total_revenue_today, false) : undefined, icon: CurrencyDollarIcon, prefix: "PHP " },
+    { label: `Orders (${dateLabel})`, value: stats?.total_orders_today, icon: ClipboardTextIcon },
+    { label: `Revenue (${dateLabel})`, value: stats?.total_revenue_today != null ? formatPrice(stats.total_revenue_today, false) : undefined, icon: CurrencyDollarIcon, prefix: "PHP " },
     { label: "Active Orders", value: stats?.active_orders, icon: ShoppingCartIcon },
     { label: "Low Stock Items", value: lowStockTotal, icon: PackageIcon },
   ]
@@ -70,9 +78,12 @@ export default function ManagerDashboardPage() {
 
   return (
     <div className="flex flex-col gap-6 p-6">
-      <div>
-        <h1 className="font-heading text-sm font-medium">Manager Dashboard</h1>
-        <p className="text-xs text-muted-foreground mt-0.5">Manage menu, orders, credits, and reports</p>
+      <div className="flex items-start justify-between">
+        <div>
+          <h1 className="font-heading text-sm font-medium">Manager Dashboard</h1>
+          <p className="text-xs text-muted-foreground mt-0.5">Manage menu, orders, credits, and reports</p>
+        </div>
+        <DatePicker value={selectedDate} onChange={setSelectedDate} />
       </div>
 
       <div className="grid grid-cols-3 gap-4">
@@ -143,7 +154,7 @@ export default function ManagerDashboardPage() {
 
       <Card>
         <CardHeader>
-          <CardTitle>Today's Orders</CardTitle>
+          <CardTitle>Orders — {new Date(selectedDate + "T00:00:00").toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" })}</CardTitle>
         </CardHeader>
         <CardContent className="p-0">
           <Table>

@@ -4,6 +4,7 @@ import { useEffect, useState } from "react"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Button } from "@/components/ui/button"
+import { DatePicker } from "@/components/ui/date-picker"
 import { CurrencyDollarIcon, ClipboardTextIcon, ShoppingCartIcon, ChartBarIcon } from "@phosphor-icons/react"
 import { formatPrice } from "@/lib/utils"
 import type { DashboardStats } from "@/types"
@@ -12,11 +13,15 @@ export default function ManagerReportsPage() {
   const [stats, setStats] = useState<DashboardStats | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [selectedDate, setSelectedDate] = useState(() => new Date().toISOString().split("T")[0])
 
   useEffect(() => {
     async function fetchData() {
+      setLoading(true)
+      setError(null)
       try {
-        const res = await fetch("/api/dashboard/stats")
+        const dateParam = selectedDate ? `date=${selectedDate}` : ""
+        const res = await fetch(`/api/dashboard/stats?${dateParam}`)
         if (!res.ok) throw new Error("Failed to fetch stats")
         const json = await res.json()
         setStats(json.data ?? json)
@@ -27,22 +32,23 @@ export default function ManagerReportsPage() {
       }
     }
     fetchData()
-  }, [])
+  }, [selectedDate])
 
   const currentMonth = new Date().toLocaleString("default", { month: "long", year: "numeric" })
+  const dateLabel = new Date(selectedDate + "T00:00:00").toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" })
 
   const summaryCards = [
     {
       title: "Total Revenue",
       value: stats?.total_revenue_today != null ? formatPrice(stats.total_revenue_today, false) : undefined,
       prefix: "PHP ",
-      subtitle: "This month",
+      subtitle: dateLabel,
       icon: CurrencyDollarIcon,
     },
     {
       title: "Total Orders",
       value: stats?.total_orders_today,
-      subtitle: "This month",
+      subtitle: dateLabel,
       icon: ClipboardTextIcon,
     },
     {
@@ -51,7 +57,7 @@ export default function ManagerReportsPage() {
         ? formatPrice(stats.total_revenue_today / stats.total_orders_today, false)
         : "0.00",
       prefix: "PHP ",
-      subtitle: "Today",
+      subtitle: dateLabel,
       icon: ShoppingCartIcon,
     },
   ]
@@ -68,9 +74,12 @@ export default function ManagerReportsPage() {
 
   return (
     <div className="flex flex-col gap-6 p-6">
-      <div>
-        <h1 className="font-heading text-sm font-medium">Reports</h1>
-        <p className="text-xs text-muted-foreground mt-0.5">Summary and analytics for {currentMonth}</p>
+      <div className="flex items-start justify-between">
+        <div>
+          <h1 className="font-heading text-sm font-medium">Reports</h1>
+          <p className="text-xs text-muted-foreground mt-0.5">Summary and analytics for {currentMonth}</p>
+        </div>
+        <DatePicker value={selectedDate} onChange={setSelectedDate} />
       </div>
 
       <div className="grid grid-cols-3 gap-4">

@@ -28,6 +28,7 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const limit = Math.min(Number(searchParams.get('limit')) || 50, 200);
     const status = searchParams.get('status');
+    const date = searchParams.get('date');
 
     let query = (supabase
       .from('orders') as any)
@@ -41,6 +42,15 @@ export async function GET(request: NextRequest) {
 
     if (status) {
       query = query.eq('status', status);
+    }
+
+    if (date) {
+      const nextDay = new Date(date);
+      nextDay.setDate(nextDay.getDate() + 1);
+      const nextDayStr = nextDay.toISOString().split('T')[0];
+      query = query
+        .gte('created_at', date)
+        .lt('created_at', nextDayStr);
     }
 
     const { data, error } = await query;

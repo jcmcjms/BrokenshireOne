@@ -10,6 +10,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Separator } from "@/components/ui/separator"
 import { toast } from "sonner"
+import { DatePicker } from "@/components/ui/date-picker"
 import { ListIcon, CaretRightIcon } from "@phosphor-icons/react"
 import { formatPrice } from "@/lib/utils"
 import type { Order } from "@/types"
@@ -31,10 +32,14 @@ export default function ManagerOrdersPage() {
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null)
   const [detailOpen, setDetailOpen] = useState(false)
   const [updating, setUpdating] = useState(false)
+  const [selectedDate, setSelectedDate] = useState(() => new Date().toISOString().split("T")[0])
 
   const fetchOrders = useCallback(async () => {
+    setLoading(true)
+    setError(null)
     try {
-      const res = await fetch("/api/orders")
+      const dateParam = selectedDate ? `date=${selectedDate}` : ""
+      const res = await fetch(`/api/orders?${dateParam}`)
       if (!res.ok) throw new Error("Failed to fetch orders")
       const json = await res.json()
       setOrders(json.data ?? json)
@@ -43,7 +48,7 @@ export default function ManagerOrdersPage() {
     } finally {
       setLoading(false)
     }
-  }, [])
+  }, [selectedDate])
 
   useEffect(() => { fetchOrders() }, [fetchOrders])
 
@@ -86,9 +91,12 @@ export default function ManagerOrdersPage() {
 
   return (
     <div className="flex flex-col gap-6 p-6">
-      <div>
-        <h1 className="font-heading text-sm font-medium">Orders Management</h1>
-        <p className="text-xs text-muted-foreground mt-0.5">View and manage all orders</p>
+      <div className="flex items-start justify-between">
+        <div>
+          <h1 className="font-heading text-sm font-medium">Orders Management</h1>
+          <p className="text-xs text-muted-foreground mt-0.5">View and manage all orders</p>
+        </div>
+        <DatePicker value={selectedDate} onChange={setSelectedDate} />
       </div>
 
       <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as StatusFilter)}>
