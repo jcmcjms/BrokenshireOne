@@ -31,6 +31,7 @@ export interface MenuItem {
   image_url: string | null;
   available: boolean;
   stock_quantity: number;
+  barcode: string | null;
   created_at: string;
 }
 

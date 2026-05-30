@@ -672,6 +672,17 @@ export async function getLowStockMenuItems(): Promise<DbMenuItem[]> {
   return (data as unknown as DbMenuItem[]) ?? [];
 }
 
+export async function getMenuItemByBarcode(barcode: string): Promise<DbMenuItem | null> {
+  const { data, error } = await supabase
+    .from('menu_items')
+    .select('*, menu_categories(name)')
+    .eq('barcode', barcode)
+    .maybeSingle();
+
+  if (error) throw error;
+  return data as unknown as DbMenuItem | null;
+}
+
 export async function decrementMenuItemStock(itemId: string, quantity: number = 1): Promise<void> {
   // Get current stock
   const { data: item, error: fetchError } = await supabase

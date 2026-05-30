@@ -23,6 +23,33 @@ export async function GET(request: NextRequest) {
 
     const { searchParams } = new URL(request.url);
     const categoryId = searchParams.get('category_id') ?? undefined;
+    const barcode = searchParams.get('barcode');
+
+    // If barcode query param is provided, do a single-item lookup by barcode
+    if (barcode) {
+      const { data: item, error: barcodeError } = await supabase
+        .from('menu_items')
+        .select('*, menu_categories(name)')
+        .eq('barcode', barcode)
+        .maybeSingle();
+
+      if (barcodeError) throw barcodeError;
+
+      if (!item) {
+        return NextResponse.json<ApiResponse>(
+          { success: false, error: 'Item not found' },
+          { status: 404 },
+        );
+      }
+
+      const mapped = {
+        ...(item as any),
+        category_name: (item as any).menu_categories?.name ?? null,
+        menu_categories: undefined,
+      };
+
+      return NextResponse.json<ApiResponse>({ success: true, data: mapped });
+    }
 
     const items = await getMenuItems(categoryId);
 
@@ -58,7 +85,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const { category_id, name, description, price, image_url, available } = await request.json();
+    const { category_id, name, description, price, image_url, available, barcode } = await request.json();
 
     if (!category_id || !name || price === undefined) {
       return NextResponse.json<ApiResponse>(
@@ -68,15 +95,18 @@ export async function POST(request: NextRequest) {
     }
 
     const db = supabase.from('menu_items') as any;
+    const insertData: Record<string, unknown> = {
+      category_id,
+      name,
+      description: description ?? '',
+      price,
+      image_url: image_url ?? null,
+      available: available ?? true,
+    };
+    if (barcode !== undefined) insertData.barcode = barcode;
+
     const { data, error } = await db
-      .insert({
-        category_id,
-        name,
-        description: description ?? '',
-        price,
-        image_url: image_url ?? null,
-        available: available ?? true,
-      })
+      .insert(insertData)
       .select()
       .single();
 

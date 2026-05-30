@@ -53,6 +53,7 @@ export interface DbMenuItem {
   image_url: string | null;
   available: boolean;
   stock_quantity: number;
+  barcode: string | null;
   created_at: string;
   updated_at: string;
   menu_categories?: { name: string } | DbMenuCategory;

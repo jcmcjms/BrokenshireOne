@@ -24,7 +24,7 @@ export async function PUT(
     }
 
     const { id } = await params;
-    const { category_id, name, description, price, image_url, available, stock_quantity } = await request.json();
+    const { category_id, name, description, price, image_url, available, stock_quantity, barcode } = await request.json();
     const updates: Record<string, unknown> = {};
 
     if (category_id !== undefined) updates.category_id = category_id;
@@ -34,6 +34,7 @@ export async function PUT(
     if (image_url !== undefined) updates.image_url = image_url;
     if (available !== undefined) updates.available = available;
     if (stock_quantity !== undefined) updates.stock_quantity = stock_quantity;
+    if (barcode !== undefined) updates.barcode = barcode;
 
     if (Object.keys(updates).length === 0) {
       return NextResponse.json<ApiResponse>(

@@ -11,8 +11,10 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs"
 import { Separator } from "@/components/ui/separator"
 import { Skeleton } from "@/components/ui/skeleton"
 import { toast } from "sonner"
-import { PlusIcon, PencilIcon, TrashIcon, ImageIcon, FolderPlus, ListBullets } from "@phosphor-icons/react"
+import { PlusIcon, PencilIcon, TrashIcon, ImageIcon, FolderPlus, ListBullets, Scan, FileArrowDown, DownloadSimple, Barcode } from "@phosphor-icons/react"
 import { ImageUploader } from "@/components/ui/image-uploader"
+import { BarcodeScanner } from "@/components/ui/barcode-scanner"
+import { BulkImportDialog } from "@/components/ui/bulk-import-dialog"
 import { formatPrice } from "@/lib/utils"
 import type { MenuItem, MenuCategory } from "@/types"
 
@@ -35,7 +37,10 @@ export default function ManagerMenuPage() {
   const [editCatName, setEditCatName] = useState("")
   const [catSaving, setCatSaving] = useState(false)
 
-  const emptyForm = { name: "", category_id: "", price: "", description: "", available: true, image_url: "" }
+  const [scannerOpen, setScannerOpen] = useState(false)
+  const [importDialogOpen, setImportDialogOpen] = useState(false)
+
+  const emptyForm = { name: "", category_id: "", price: "", description: "", available: true, image_url: "", barcode: "" }
   const [form, setForm] = useState(emptyForm)
 
   const fetchData = useCallback(async () => {
@@ -74,6 +79,7 @@ export default function ManagerMenuPage() {
       description: item.description,
       available: item.available,
       image_url: item.image_url ?? "",
+      barcode: item.barcode ?? "",
     })
     setItemDialogOpen(true)
   }
@@ -92,6 +98,7 @@ export default function ManagerMenuPage() {
         description: form.description,
         available: form.available,
         image_url: form.image_url || null,
+        barcode: form.barcode || null,
       }
       const res = await fetch(editingItem ? `/api/menu/items/${editingItem.id}` : "/api/menu/items", {
         method: editingItem ? "PATCH" : "POST",
@@ -179,6 +186,28 @@ export default function ManagerMenuPage() {
     }
   }
 
+  const handleExport = async () => {
+    try {
+      const res = await fetch("/api/menu/export")
+      if (!res.ok) throw new Error("Failed to export")
+      const blob = await res.blob()
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement("a")
+      a.href = url
+      a.download = "menu-items.xlsx"
+      a.click()
+      URL.revokeObjectURL(url)
+      toast.success("Menu exported successfully")
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to export")
+    }
+  }
+
+  const handleBarcodeScanned = (barcode: string) => {
+    setForm((prev) => ({ ...prev, barcode }))
+    setScannerOpen(false)
+  }
+
   const filteredItems = activeCategory === "all" ? items : items.filter((i) => i.category_id === activeCategory)
 
   if (error) {
@@ -199,6 +228,14 @@ export default function ManagerMenuPage() {
           <p className="text-xs text-muted-foreground mt-0.5">Add, edit, and manage menu items</p>
         </div>
         <div className="flex items-center gap-2">
+          <Button size="sm" variant="outline" onClick={() => setImportDialogOpen(true)} className="gap-1">
+            <FileArrowDown className="size-3.5" />
+            Import
+          </Button>
+          <Button size="sm" variant="outline" onClick={handleExport} className="gap-1">
+            <DownloadSimple className="size-3.5" />
+            Export
+          </Button>
           <Button size="sm" variant="outline" onClick={() => setCatDialogOpen(true)} className="gap-1">
             <FolderPlus className="size-3.5" />
             Categories
@@ -258,6 +295,12 @@ export default function ManagerMenuPage() {
                         </div>
                       </div>
                       <Badge variant="outline" className="w-fit">{item.category_name ?? categories.find(c => c.id === item.category_id)?.name}</Badge>
+                      {item.barcode && (
+                        <Badge variant="secondary" className="w-fit text-[10px] font-mono">
+                          <Barcode className="size-2.5 mr-1" />
+                          {item.barcode}
+                        </Badge>
+                      )}
                       <div className="flex items-center justify-between">
                         <span className="text-xs font-medium">{formatPrice(item.price)}</span>
                         <Badge variant={item.available ? "default" : "secondary"} className="text-[10px]">
@@ -319,6 +362,29 @@ export default function ManagerMenuPage() {
             <div className="flex flex-col gap-1">
               <label className="text-xs text-muted-foreground">Description</label>
               <Input value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} placeholder="Brief description" />
+            </div>
+            <div className="flex flex-col gap-1">
+              <label className="text-xs text-muted-foreground">Barcode</label>
+              <div className="flex items-center gap-2">
+                <div className="flex-1 relative">
+                  <Input
+                    value={form.barcode}
+                    onChange={(e) => setForm({ ...form, barcode: e.target.value })}
+                    placeholder="Item barcode (optional)"
+                    className="h-8 text-xs pl-7 font-mono"
+                  />
+                  <Barcode className="absolute left-2 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" />
+                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setScannerOpen(true)}
+                  className="gap-1 shrink-0"
+                >
+                  <Scan className="size-3.5" />
+                  Scan
+                </Button>
+              </div>
             </div>
             <div className="flex items-center gap-2">
               <label className="text-xs text-muted-foreground">Available</label>
@@ -436,6 +502,20 @@ export default function ManagerMenuPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Barcode Scanner */}
+      <BarcodeScanner
+        open={scannerOpen}
+        onScan={handleBarcodeScanned}
+        onClose={() => setScannerOpen(false)}
+      />
+
+      {/* Bulk Import Dialog */}
+      <BulkImportDialog
+        open={importDialogOpen}
+        onOpenChange={setImportDialogOpen}
+        onSuccess={fetchData}
+      />
     </div>
   )
 }

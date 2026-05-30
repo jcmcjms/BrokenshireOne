@@ -21,8 +21,10 @@ import {
   CheckCircle,
   ShoppingCart,
   ForkKnife,
+  Scan,
 } from "@phosphor-icons/react"
 import { cn, formatPrice } from "@/lib/utils"
+import { BarcodeScanner } from "@/components/ui/barcode-scanner"
 import type { MenuItem, MenuCategory, User, ApiResponse } from "@/types"
 
 interface CartItem extends MenuItem {
@@ -44,6 +46,7 @@ export default function OrderPage() {
   const [orderPlaced, setOrderPlaced] = useState(false)
   const [orderNumber, setOrderNumber] = useState("")
   const [error, setError] = useState<string | null>(null)
+  const [scannerOpen, setScannerOpen] = useState(false)
 
   // Fetch current user
   useEffect(() => {
@@ -130,6 +133,35 @@ export default function OrderPage() {
   const cartItemCount = cart.reduce((sum, ci) => sum + ci.cartQuantity, 0)
 
   const canUseCredit = user?.role === "faculty"
+
+  // Barcode scan
+  const handleBarcodeScan = async (barcode: string) => {
+    setScannerOpen(false)
+    try {
+      const res = await fetch(`/api/menu/items?barcode=${encodeURIComponent(barcode)}`)
+      if (!res.ok) {
+        if (res.status === 404) {
+          toast.error("Item not found for this barcode")
+          return
+        }
+        throw new Error("Failed to look up item")
+      }
+      const json = await res.json()
+      if (json.success && json.data) {
+        const item = json.data as MenuItem
+        if (!item.available) {
+          toast.error("This item is not available")
+          return
+        }
+        addToCart(item)
+        toast.success(`Added "${item.name}" to your order`)
+      } else {
+        toast.error("Item not found")
+      }
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to scan item")
+    }
+  }
 
   // Place order
   const placeOrder = async () => {
@@ -253,9 +285,15 @@ export default function OrderPage() {
               Browse the menu and add items to your cart
             </p>
           </div>
-          <Badge variant="secondary" className="capitalize">
-            {user?.role}
-          </Badge>
+          <div className="flex items-center gap-2">
+            <Button variant="outline" size="sm" onClick={() => setScannerOpen(true)} className="gap-1">
+              <Scan className="size-3.5" />
+              Scan Item
+            </Button>
+            <Badge variant="secondary" className="capitalize">
+              {user?.role}
+            </Badge>
+          </div>
         </div>
 
         {/* Search */}
@@ -455,6 +493,13 @@ export default function OrderPage() {
           )}
         </Button>
       </div>
+
+      {/* Barcode Scanner */}
+      <BarcodeScanner
+        open={scannerOpen}
+        onScan={handleBarcodeScan}
+        onClose={() => setScannerOpen(false)}
+      />
     </div>
   )
 }
