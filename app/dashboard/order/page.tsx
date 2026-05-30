@@ -342,6 +342,11 @@ export default function OrderPage() {
                               {item.description}
                             </p>
                           )}
+                          {item.stock_quantity > 0 && (
+                            <span className="text-[10px] text-muted-foreground">
+                              {item.stock_quantity} left
+                            </span>
+                          )}
                           <div className="mt-auto flex items-center justify-between">
                             <span className="text-sm font-heading font-medium">
                               {formatPrice(item.price)} / {item.unit}

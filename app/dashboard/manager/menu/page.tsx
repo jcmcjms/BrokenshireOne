@@ -15,7 +15,7 @@ import { PlusIcon, PencilIcon, TrashIcon, ImageIcon, FolderPlus, ListBullets, Sc
 import { ImageUploader } from "@/components/ui/image-uploader"
 import { BarcodeScanner } from "@/components/ui/barcode-scanner"
 import { BulkImportDialog } from "@/components/ui/bulk-import-dialog"
-import { formatPrice } from "@/lib/utils"
+import { cn, formatPrice } from "@/lib/utils"
 import { MENU_UNITS, CATEGORY_DEFAULT_UNIT } from "@/lib/units"
 import type { MenuItem, MenuCategory } from "@/types"
 
@@ -41,7 +41,7 @@ export default function ManagerMenuPage() {
   const [scannerOpen, setScannerOpen] = useState(false)
   const [importDialogOpen, setImportDialogOpen] = useState(false)
 
-  const emptyForm = { name: "", category_id: "", price: "", description: "", available: true, image_url: "", barcode: "", unit: "" }
+  const emptyForm = { name: "", category_id: "", price: "", description: "", available: true, image_url: "", barcode: "", unit: "", stock_quantity: 0 }
   const [form, setForm] = useState(emptyForm)
 
   const fetchData = useCallback(async () => {
@@ -82,6 +82,7 @@ export default function ManagerMenuPage() {
       image_url: item.image_url ?? "",
       barcode: item.barcode ?? "",
       unit: item.unit ?? "",
+      stock_quantity: item.stock_quantity ?? 0,
     })
     setItemDialogOpen(true)
   }
@@ -102,6 +103,7 @@ export default function ManagerMenuPage() {
         image_url: form.image_url || null,
         barcode: form.barcode || null,
         unit: form.unit || "serving",
+        stock_quantity: form.stock_quantity,
       }
       const res = await fetch(editingItem ? `/api/menu/items/${editingItem.id}` : "/api/menu/items", {
         method: editingItem ? "PATCH" : "POST",
@@ -320,6 +322,24 @@ export default function ManagerMenuPage() {
                           {item.available ? "Available" : "Unavailable"}
                         </Badge>
                       </div>
+                      {/* Stock badge */}
+                      {item.stock_quantity > 0 ? (
+                        <span className={cn(
+                          "text-[10px] flex items-center gap-1",
+                          item.stock_quantity <= 5 ? "text-amber-500" : "text-muted-foreground"
+                        )}>
+                          <span className={cn(
+                            "inline-block size-1.5 rounded-full",
+                            item.stock_quantity <= 5 ? "bg-amber-500" : "bg-green-500"
+                          )} />
+                          {item.stock_quantity <= 5 ? `Only ${item.stock_quantity} left` : `${item.stock_quantity} left`}
+                        </span>
+                      ) : (
+                        <span className="text-[10px] text-destructive flex items-center gap-1">
+                          <span className="inline-block size-1.5 rounded-full bg-destructive" />
+                          Out of stock
+                        </span>
+                      )}
                     </div>
                   </CardContent>
                 </Card>
@@ -411,6 +431,17 @@ export default function ManagerMenuPage() {
                   Scan
                 </Button>
               </div>
+            </div>
+            <div className="flex flex-col gap-1">
+              <label className="text-xs text-muted-foreground">Stock Quantity</label>
+              <Input
+                value={form.stock_quantity}
+                onChange={(e) => setForm({ ...form, stock_quantity: parseInt(e.target.value) || 0 })}
+                placeholder="0"
+                type="number"
+                min="0"
+                step="1"
+              />
             </div>
             <div className="flex items-center gap-2">
               <label className="text-xs text-muted-foreground">Available</label>
