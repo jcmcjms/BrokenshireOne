@@ -23,7 +23,6 @@ import MobileManagerMenuPage from "@/components/mobile/mobile-manager-menu"
 
 export default function ManagerMenuPage() {
   const isMobile = useMobile()
-  if (isMobile) return <MobileManagerMenuPage />
 
   const [items, setItems] = useState<MenuItem[]>([])
   const [categories, setCategories] = useState<MenuCategory[]>([])
@@ -239,6 +238,8 @@ export default function ManagerMenuPage() {
       </div>
     )
   }
+
+  if (isMobile) return <MobileManagerMenuPage />
 
   return (
     <div className="flex flex-col gap-6 p-6">

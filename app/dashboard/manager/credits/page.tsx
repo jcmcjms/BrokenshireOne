@@ -17,7 +17,6 @@ import MobileManagerCreditsPage from "@/components/mobile/mobile-manager-credits
 
 export default function ManagerCreditsPage() {
   const isMobile = useMobile()
-  if (isMobile) return <MobileManagerCreditsPage />
 
   const [allowances, setAllowances] = useState<CreditAllowance[]>([])
   const [loading, setLoading] = useState(true)
@@ -82,6 +81,8 @@ export default function ManagerCreditsPage() {
       </div>
     )
   }
+
+  if (isMobile) return <MobileManagerCreditsPage />
 
   return (
     <div className="flex flex-col gap-6 p-6">

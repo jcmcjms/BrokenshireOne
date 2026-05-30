@@ -21,8 +21,6 @@ const statusVariant: Record<string, "default" | "secondary" | "destructive" | "o
 
 export default function FacultyOrdersPage() {
   const isMobile = useMobile()
-  if (isMobile) return <MobileOrdersPage fetchUrl="/api/orders?mine=true" title="My Orders" subtitle="View your order history" />
-
   const [orders, setOrders] = useState<Order[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -53,6 +51,8 @@ export default function FacultyOrdersPage() {
       </div>
     )
   }
+
+  if (isMobile) return <MobileOrdersPage fetchUrl="/api/orders?mine=true" title="My Orders" subtitle="View your order history" />
 
   return (
     <div className="flex flex-col gap-6 p-6">

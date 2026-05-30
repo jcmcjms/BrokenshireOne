@@ -38,7 +38,6 @@ const categoryLabels: Record<string, string> = {
 
 export default function ManagerInventoryPage() {
   const isMobile = useMobile()
-  if (isMobile) return <MobileManagerInventoryPage />
 
   const [items, setItems] = useState<InventoryItem[]>([])
   const [loading, setLoading] = useState(true)
@@ -116,6 +115,8 @@ export default function ManagerInventoryPage() {
       </div>
     )
   }
+
+  if (isMobile) return <MobileManagerInventoryPage />
 
   return (
     <div className="flex flex-col gap-6 p-6">

@@ -15,8 +15,6 @@ import MobileFacultyCreditsPage from "@/components/mobile/mobile-faculty-credits
 
 export default function FacultyCreditsPage() {
   const isMobile = useMobile()
-  if (isMobile) return <MobileFacultyCreditsPage />
-
   const [allowance, setAllowance] = useState<CreditAllowance | null>(null)
   const [transactions, setTransactions] = useState<CreditTransaction[]>([])
   const [loading, setLoading] = useState(true)
@@ -64,6 +62,8 @@ export default function FacultyCreditsPage() {
       </div>
     )
   }
+
+  if (isMobile) return <MobileFacultyCreditsPage />
 
   return (
     <div className="flex flex-col gap-6 p-6">

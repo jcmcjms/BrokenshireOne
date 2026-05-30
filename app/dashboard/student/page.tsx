@@ -14,8 +14,6 @@ import MobileStudentDashboard from "@/components/mobile/mobile-student-dashboard
 
 export default function StudentDashboardPage() {
   const isMobile = useMobile()
-  if (isMobile) return <MobileStudentDashboard />
-
   const [orders, setOrders] = useState<Order[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -53,6 +51,8 @@ export default function StudentDashboardPage() {
       </div>
     )
   }
+
+  if (isMobile) return <MobileStudentDashboard />
 
   return (
     <div className="flex flex-col gap-6 p-6">

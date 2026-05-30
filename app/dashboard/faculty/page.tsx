@@ -14,8 +14,6 @@ import MobileFacultyDashboard from "@/components/mobile/mobile-faculty-dashboard
 
 export default function FacultyDashboardPage() {
   const isMobile = useMobile()
-  if (isMobile) return <MobileFacultyDashboard />
-
   const [credit, setCredit] = useState<CreditAllowance | null>(null)
   const [orders, setOrders] = useState<Order[]>([])
   const [loading, setLoading] = useState(true)
@@ -66,6 +64,8 @@ export default function FacultyDashboardPage() {
       </div>
     )
   }
+
+  if (isMobile) return <MobileFacultyDashboard />
 
   return (
     <div className="flex flex-col gap-6 p-6">

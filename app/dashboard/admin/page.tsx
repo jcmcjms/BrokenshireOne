@@ -14,8 +14,6 @@ import MobileAdminDashboard from "@/components/mobile/mobile-admin-dashboard"
 
 export default function AdminDashboardPage() {
   const isMobile = useMobile()
-  if (isMobile) return <MobileAdminDashboard />
-
   const [stats, setStats] = useState<DashboardStats | null>(null)
   const [recentOrders, setRecentOrders] = useState<Order[]>([])
   const [loading, setLoading] = useState(true)
@@ -67,6 +65,8 @@ export default function AdminDashboardPage() {
     completed: "default",
     cancelled: "destructive",
   }
+
+  if (isMobile) return <MobileAdminDashboard />
 
   return (
     <div className="flex flex-col gap-6 p-6">

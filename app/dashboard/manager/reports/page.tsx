@@ -13,7 +13,6 @@ import MobileManagerReportsPage from "@/components/mobile/mobile-manager-reports
 
 export default function ManagerReportsPage() {
   const isMobile = useMobile()
-  if (isMobile) return <MobileManagerReportsPage />
 
   const [stats, setStats] = useState<DashboardStats | null>(null)
   const [loading, setLoading] = useState(true)
@@ -76,6 +75,8 @@ export default function ManagerReportsPage() {
       </div>
     )
   }
+
+  if (isMobile) return <MobileManagerReportsPage />
 
   return (
     <div className="flex flex-col gap-6 p-6">

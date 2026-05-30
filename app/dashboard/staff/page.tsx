@@ -25,7 +25,6 @@ interface CartItem extends MenuItem {
 
 export default function StaffCounterPage() {
   const isMobile = useMobile()
-  if (isMobile) return <MobileStaffPage />
 
   const [items, setItems] = useState<MenuItem[]>([])
   const [categories, setCategories] = useState<MenuCategory[]>([])
@@ -251,6 +250,8 @@ export default function StaffCounterPage() {
       </div>
     )
   }
+
+  if (isMobile) return <MobileStaffPage />
 
   return (
     <Tabs value={activePageTab} onValueChange={setActivePageTab}>

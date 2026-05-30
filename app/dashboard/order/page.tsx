@@ -36,7 +36,6 @@ interface CartItem extends MenuItem {
 
 export default function OrderPage() {
   const isMobile = useMobile()
-  if (isMobile) return <MobileOrderPage />
 
   const router = useRouter()
   const [user, setUser] = useState<User | null>(null)
@@ -285,6 +284,8 @@ export default function OrderPage() {
       </div>
     )
   }
+
+  if (isMobile) return <MobileOrderPage />
 
   return (
     <div className="flex h-[calc(100vh-3rem)] gap-4 p-4">

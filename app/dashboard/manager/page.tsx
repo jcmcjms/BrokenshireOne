@@ -16,8 +16,6 @@ import MobileManagerDashboard from "@/components/mobile/mobile-manager-dashboard
 
 export default function ManagerDashboardPage() {
   const isMobile = useMobile()
-  if (isMobile) return <MobileManagerDashboard />
-
   const [stats, setStats] = useState<DashboardStats | null>(null)
   const [recentOrders, setRecentOrders] = useState<Order[]>([])
   const [loading, setLoading] = useState(true)
@@ -80,6 +78,8 @@ export default function ManagerDashboardPage() {
     completed: "default",
     cancelled: "destructive",
   }
+
+  if (isMobile) return <MobileManagerDashboard />
 
   return (
     <div className="flex flex-col gap-6 p-6">

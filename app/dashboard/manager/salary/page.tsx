@@ -32,7 +32,6 @@ function monthName(m: number): string {
 
 export default function ManagerSalaryPage() {
   const isMobile = useMobile()
-  if (isMobile) return <MobileManagerSalaryPage />
 
   const { month: cMonth, year: cYear } = getCurrentMonthYear()
 
@@ -220,6 +219,8 @@ export default function ManagerSalaryPage() {
       </div>
     )
   }
+
+  if (isMobile) return <MobileManagerSalaryPage />
 
   return (
     <div className="flex flex-col gap-6 p-6">

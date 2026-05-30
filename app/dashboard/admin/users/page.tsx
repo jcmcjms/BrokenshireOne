@@ -75,8 +75,6 @@ const roleBadgeVariant: Record<string, "default" | "secondary" | "outline" | "de
 
 export default function AdminUsersPage() {
   const isMobile = useMobile()
-  if (isMobile) return <MobileAdminUsersPage />
-
   const [users, setUsers] = useState<User[]>([])
   const [roles, setRoles] = useState<Role[]>([])
   const [loading, setLoading] = useState(true)
@@ -264,6 +262,8 @@ export default function AdminUsersPage() {
   }
 
   const roleOptions = Array.from(new Set(users.map((u) => u.role)))
+
+  if (isMobile) return <MobileAdminUsersPage />
 
   return (
     <div className="flex flex-col gap-6 p-6">

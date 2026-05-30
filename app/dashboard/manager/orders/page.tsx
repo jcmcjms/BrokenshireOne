@@ -28,7 +28,6 @@ const statusVariant: Record<string, "default" | "secondary" | "destructive" | "o
 
 export default function ManagerOrdersPage() {
   const isMobile = useMobile()
-  if (isMobile) return <MobileManagerOrdersPage />
 
   const [orders, setOrders] = useState<Order[]>([])
   const [loading, setLoading] = useState(true)
@@ -93,6 +92,8 @@ export default function ManagerOrdersPage() {
       </div>
     )
   }
+
+  if (isMobile) return <MobileManagerOrdersPage />
 
   return (
     <div className="flex flex-col gap-6 p-6">
