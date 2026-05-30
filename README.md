@@ -210,7 +210,7 @@ Supabase Realtime subscriptions power live notifications for new orders, order c
 
 ```bash
 # 1. Clone the repository
-git clone https://github.com/jcmcjms/canteen_management_v2.git
+git clone https://github.com/jcmcjms/BrokenshireOne.git
 cd canteen_management
 
 # 2. Install dependencies
@@ -499,4 +499,4 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 
 BrokenshireOne is maintained by the development team at Brokenshire College Toril.
 
-Repository: [https://github.com/jcmcjms/canteen_management_v2](https://github.com/jcmcjms/canteen_management_v2)
+Repository: [https://github.com/jcmcjms/BrokenshireOne](https://github.com/jcmcjms/BrokenshireOne)
