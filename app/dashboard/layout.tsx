@@ -29,6 +29,7 @@ import {
   SignOut,
   List,
   PackageIcon,
+  Wallet,
 } from "@phosphor-icons/react"
 
 interface NavItem {
@@ -52,6 +53,7 @@ const routePermissionMap: Record<string, string[]> = {
   "/dashboard/manager/orders": ["orders.view_all"],
   "/dashboard/manager/credits": ["credits.manage"],
   "/dashboard/manager/reports": ["reports.view"],
+  "/dashboard/manager/salary": ["credits.manage"],
   "/dashboard/staff": ["orders.process"],
   "/dashboard/staff/orders": ["orders.view_own"],
   "/dashboard/faculty": [],
@@ -92,6 +94,7 @@ const navConfig: Record<string, NavItem[]> = {
     { label: "Inventory", href: "/dashboard/manager/inventory", icon: PackageIcon },
     { label: "Orders", href: "/dashboard/manager/orders", icon: Receipt },
     { label: "Credits", href: "/dashboard/manager/credits", icon: CreditCard },
+    { label: "Salary", href: "/dashboard/manager/salary", icon: Wallet },
     { label: "Reports", href: "/dashboard/manager/reports", icon: ChartBar },
   ],
   staff: [
@@ -125,6 +128,7 @@ function getPageTitle(pathname: string): string {
   if (pathname.includes("/orders")) return "Orders"
   if (pathname.includes("/credits")) return "Credits"
   if (pathname.includes("/inventory")) return "Inventory Management"
+  if (pathname.includes("/salary")) return "Salary Deductions"
   if (pathname.includes("/reports")) return "Reports"
   if (pathname.includes("/settings")) return "Settings"
   return "Dashboard"

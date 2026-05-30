@@ -8,7 +8,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Skeleton } from "@/components/ui/skeleton"
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert"
 import { DatePicker } from "@/components/ui/date-picker"
-import { ClipboardTextIcon, CurrencyDollarIcon, ShoppingCartIcon, PackageIcon, PlusIcon, ListIcon, CreditCardIcon, WarningCircleIcon } from "@phosphor-icons/react"
+import { ClipboardTextIcon, CurrencyDollarIcon, ShoppingCartIcon, PackageIcon, PlusIcon, ListIcon, CreditCardIcon, WalletIcon, WarningCircleIcon } from "@phosphor-icons/react"
 import { formatPrice } from "@/lib/utils"
 import type { DashboardStats, Order } from "@/types"
 
@@ -148,6 +148,12 @@ export default function ManagerDashboardPage() {
           <a href="/dashboard/manager/inventory">
             <PackageIcon className="size-4" />
             Inventory
+          </a>
+        </Button>
+        <Button variant="outline" size="sm" asChild>
+          <a href="/dashboard/manager/salary">
+            <WalletIcon className="size-4" />
+            Salary
           </a>
         </Button>
       </div>

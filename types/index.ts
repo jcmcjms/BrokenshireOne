@@ -170,6 +170,40 @@ export interface PaginatedResponse<T> extends ApiResponse<T[]> {
   limit: number;
 }
 
+export interface SalaryDeductionLimit {
+  id: string;
+  user_id: string;
+  user_name?: string;
+  month: number;
+  year: number;
+  max_deduction_limit: number;
+  total_deducted: number;
+  remaining: number;
+}
+
+export interface SalaryDeduction {
+  id: string;
+  user_id: string;
+  user_name?: string;
+  amount: number;
+  deduction_type: 'loan' | 'uniform' | 'damages' | 'other';
+  reason: string | null;
+  month: number;
+  year: number;
+  created_by: string;
+  created_by_name?: string;
+  created_at: string;
+}
+
+export type DeductionType = 'loan' | 'uniform' | 'damages' | 'other';
+
+export const DEDUCTION_TYPES: { value: DeductionType; label: string }[] = [
+  { value: 'loan', label: 'Loan' },
+  { value: 'uniform', label: 'Uniform' },
+  { value: 'damages', label: 'Damages' },
+  { value: 'other', label: 'Other' },
+]
+
 export interface JwtPayload {
   user_id: string;
   email: string;

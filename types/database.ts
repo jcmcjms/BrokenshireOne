@@ -151,3 +151,29 @@ export interface DbInventoryMovement {
   created_at: string;
   users?: { name: string } | DbUser;
 }
+
+export interface DbSalaryDeductionLimit {
+  id: string;
+  user_id: string;
+  month: number;
+  year: number;
+  max_deduction_limit: number;
+  total_deducted: number;
+  created_at: string;
+  updated_at: string;
+  users?: { name: string } | DbUser;
+}
+
+export interface DbSalaryDeduction {
+  id: string;
+  user_id: string;
+  amount: number;
+  deduction_type: 'loan' | 'uniform' | 'damages' | 'other';
+  reason: string | null;
+  month: number;
+  year: number;
+  created_by: string;
+  created_at: string;
+  users?: { name: string } | DbUser;
+  creator?: { name: string } | DbUser;
+}
