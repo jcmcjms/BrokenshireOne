@@ -524,7 +524,7 @@ export default function ManagerMenuPage() {
         <DialogContent className="sm:max-w-sm">
           <DialogHeader>
             <DialogTitle>Edit Category</DialogTitle>
-            <DialogDescription>Rename "{editingCat?.name}"</DialogDescription>
+            <DialogDescription>Rename &ldquo;{editingCat?.name}&rdquo;</DialogDescription>
           </DialogHeader>
           <Input
             value={editCatName}
@@ -548,7 +548,7 @@ export default function ManagerMenuPage() {
           <DialogHeader>
             <DialogTitle>Delete Item</DialogTitle>
             <DialogDescription>
-              Are you sure you want to delete "{deletingItem?.name}"? This action cannot be undone.
+              Are you sure you want to delete &ldquo;{deletingItem?.name}&rdquo;? This action cannot be undone.
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
