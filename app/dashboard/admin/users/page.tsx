@@ -33,7 +33,9 @@ import {
   Check,
   X,
   Warning,
+  Shield,
 } from "@phosphor-icons/react"
+import PermissionDialog from "@/components/admin/permission-dialog"
 import { formatPrice } from "@/lib/utils"
 import type { User } from "@/types"
 
@@ -87,6 +89,10 @@ export default function AdminUsersPage() {
   const [formError, setFormError] = useState<string | null>(null)
   const [formSuccess, setFormSuccess] = useState<string | null>(null)
   const [generatedCredentials, setGeneratedCredentials] = useState<{ employee_id: string; password: string } | null>(null)
+
+  // Permission dialog
+  const [permDialogOpen, setPermDialogOpen] = useState(false)
+  const [permTargetUser, setPermTargetUser] = useState<User | null>(null)
 
   // Delete confirmation
   const [deleteTarget, setDeleteTarget] = useState<User | null>(null)
@@ -370,6 +376,17 @@ export default function AdminUsersPage() {
                           <Button
                             variant="ghost"
                             size="icon-xs"
+                            onClick={() => {
+                              setPermTargetUser(user)
+                              setPermDialogOpen(true)
+                            }}
+                            title="Manage permissions"
+                          >
+                            <Shield className="size-3.5" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon-xs"
                             onClick={() => openEditDialog(user)}
                             title="Edit user"
                           >
@@ -587,6 +604,22 @@ export default function AdminUsersPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Permission Management Dialog */}
+      {permTargetUser && (
+        <PermissionDialog
+          open={permDialogOpen}
+          onOpenChange={(open) => {
+            setPermDialogOpen(open)
+            if (!open) {
+              setPermTargetUser(null)
+              fetchUsers()
+            }
+          }}
+          userId={permTargetUser.id}
+          userName={permTargetUser.name}
+        />
+      )}
 
       {/* Delete Confirmation Dialog */}
       <Dialog open={deleteOpen} onOpenChange={setDeleteOpen}>

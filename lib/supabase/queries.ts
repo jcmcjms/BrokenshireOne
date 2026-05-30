@@ -11,6 +11,8 @@ import type {
   DbCreditTransaction,
   DbInventoryItem,
   DbInventoryMovement,
+  DbUserPermission,
+  DbPermission,
 } from '@/types/database';
 
 export async function getUserByEmail(email: string): Promise<DbUser | null> {
@@ -390,6 +392,131 @@ export async function deactivateUser(id: string): Promise<void> {
     .eq('id', id);
 
   if (error) throw error;
+}
+
+// ============================================================================
+// Permission Override Queries
+// ============================================================================
+
+export async function getAllPermissions(): Promise<DbPermission[]> {
+  const { data, error } = await supabase
+    .from('permissions')
+    .select('*')
+    .order('module', { ascending: true })
+    .order('code', { ascending: true });
+
+  if (error) throw error;
+  return (data as unknown as DbPermission[]) ?? [];
+}
+
+export async function getUserPermissionOverrides(userId: string): Promise<DbUserPermission[]> {
+  const { data, error } = await supabase
+    .from('user_permissions')
+    .select('*, permissions!inner(code)')
+    .eq('user_id', userId);
+
+  if (error) throw error;
+  return (data as unknown as DbUserPermission[]) ?? [];
+}
+
+export async function setUserPermissionOverrides(
+  userId: string,
+  overrides: Record<string, boolean | null>,
+): Promise<void> {
+  // Get all permission IDs
+  const { data: allPerms, error: permError } = await supabase
+    .from('permissions')
+    .select('id, code');
+
+  if (permError) throw permError;
+  const permMap = new Map((allPerms ?? []).map((p: any) => [p.code, p.id]));
+
+  // Process each override
+  for (const [code, value] of Object.entries(overrides)) {
+    const permissionId = permMap.get(code);
+    if (!permissionId) continue;
+
+    if (value === null) {
+      // Remove override — reset to role default
+      await supabase
+        .from('user_permissions')
+        .delete()
+        .eq('user_id', userId)
+        .eq('permission_id', permissionId);
+    } else {
+      // Upsert override (grant or revoke)
+      const existing = await supabase
+        .from('user_permissions')
+        .select('id')
+        .eq('user_id', userId)
+        .eq('permission_id', permissionId)
+        .maybeSingle();
+
+      if ((existing as any)?.data) {
+        await supabase
+          .from('user_permissions')
+          .update({ grant: value } as any)
+          .eq('user_id', userId)
+          .eq('permission_id', permissionId);
+      } else {
+        await supabase
+          .from('user_permissions')
+          .insert({
+            user_id: userId,
+            permission_id: permissionId,
+            grant: value,
+          } as any);
+      }
+    }
+  }
+}
+
+export async function getEffectivePermissions(userId: string): Promise<string[]> {
+  // 1. Get user's role
+  const { data: user, error: userError } = await supabase
+    .from('users')
+    .select('role_id')
+    .eq('id', userId)
+    .single();
+
+  if (userError || !user) return [];
+
+  const roleId = (user as any).role_id;
+
+  // 2. Get role-based permissions
+  const { data: rolePerms, error: roleError } = await supabase
+    .from('role_permissions')
+    .select('permissions!inner(code)')
+    .eq('role_id', roleId);
+
+  if (roleError) return [];
+
+  const rolePermissions = new Set(
+    (rolePerms as unknown as { permissions: { code: string } }[])
+      .map((rp: any) => rp.permissions?.code)
+      .filter(Boolean),
+  );
+
+  // 3. Get user-level overrides
+  const { data: userPerms, error: userPermError } = await supabase
+    .from('user_permissions')
+    .select('*, permissions!inner(code)')
+    .eq('user_id', userId);
+
+  if (!userPermError) {
+    for (const up of (userPerms as unknown as DbUserPermission[]) ?? []) {
+      const code = (up as any).permissions?.code;
+      if (code) {
+        if (up.grant) {
+          rolePermissions.add(code);
+        } else {
+          rolePermissions.delete(code);
+        }
+      }
+    }
+  }
+
+  return Array.from(rolePermissions);
 }
 
 export async function getAllRoles(): Promise<{ id: string; name: string; description: string }[]> {
