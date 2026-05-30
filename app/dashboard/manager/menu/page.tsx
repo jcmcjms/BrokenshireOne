@@ -41,7 +41,7 @@ export default function ManagerMenuPage() {
   const [scannerOpen, setScannerOpen] = useState(false)
   const [importDialogOpen, setImportDialogOpen] = useState(false)
 
-  const emptyForm = { name: "", category_id: "", price: "", description: "", available: true, image_url: "", barcode: "", unit: "", stock_quantity: 0 }
+  const emptyForm = { name: "", category_id: "", price: "", description: "", available: true, image_url: "", barcode: "", unit: "", stock_quantity: "" }
   const [form, setForm] = useState(emptyForm)
 
   const fetchData = useCallback(async () => {
@@ -82,7 +82,7 @@ export default function ManagerMenuPage() {
       image_url: item.image_url ?? "",
       barcode: item.barcode ?? "",
       unit: item.unit ?? "",
-      stock_quantity: item.stock_quantity ?? 0,
+      stock_quantity: String(item.stock_quantity ?? 0),
     })
     setItemDialogOpen(true)
   }
@@ -103,7 +103,7 @@ export default function ManagerMenuPage() {
         image_url: form.image_url || null,
         barcode: form.barcode || null,
         unit: form.unit || "serving",
-        stock_quantity: form.stock_quantity,
+        stock_quantity: parseInt(form.stock_quantity) || 0,
       }
       const res = await fetch(editingItem ? `/api/menu/items/${editingItem.id}` : "/api/menu/items", {
         method: editingItem ? "PATCH" : "POST",
@@ -436,7 +436,7 @@ export default function ManagerMenuPage() {
               <label className="text-xs text-muted-foreground">Stock Quantity</label>
               <Input
                 value={form.stock_quantity}
-                onChange={(e) => setForm({ ...form, stock_quantity: parseInt(e.target.value) || 0 })}
+                onChange={(e) => setForm({ ...form, stock_quantity: e.target.value })}
                 placeholder="0"
                 type="number"
                 min="0"
