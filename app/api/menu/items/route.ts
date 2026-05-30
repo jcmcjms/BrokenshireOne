@@ -85,7 +85,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const { category_id, name, description, price, image_url, available, barcode, unit } = await request.json();
+    const { category_id, name, description, price, image_url, available, stock_quantity, barcode, unit } = await request.json();
 
     if (!category_id || !name || price === undefined) {
       return NextResponse.json<ApiResponse>(
@@ -104,6 +104,7 @@ export async function POST(request: NextRequest) {
       available: available ?? true,
     };
     if (barcode !== undefined) insertData.barcode = barcode;
+    if (stock_quantity !== undefined) insertData.stock_quantity = parseInt(String(stock_quantity), 10) || 0;
     insertData.unit = unit ?? 'serving';
 
     const { data, error } = await db
