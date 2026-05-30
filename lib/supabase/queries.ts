@@ -196,6 +196,8 @@ export async function createOrder(
     status: string;
     total: number;
     payment_method: string;
+    cash_given?: number | null;
+    change_amount?: number | null;
     notes?: string | null;
   },
   items: { item_id: string; quantity: number; unit_price: number }[],

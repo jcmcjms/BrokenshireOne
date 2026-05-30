@@ -1,0 +1,2 @@
+ALTER TABLE orders ADD COLUMN cash_given NUMERIC(10,2);
+ALTER TABLE orders ADD COLUMN change_amount NUMERIC(10,2);

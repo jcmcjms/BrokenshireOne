@@ -27,6 +27,7 @@ export async function GET(request: NextRequest) {
 
     const { searchParams } = new URL(request.url);
     const limit = Math.min(Number(searchParams.get('limit')) || 50, 200);
+    const status = searchParams.get('status');
 
     let query = (supabase
       .from('orders') as any)
@@ -36,6 +37,10 @@ export async function GET(request: NextRequest) {
 
     if (session.role === 'faculty' || session.role === 'student') {
       query = query.eq('user_id', session.user_id);
+    }
+
+    if (status) {
+      query = query.eq('status', status);
     }
 
     const { data, error } = await query;
@@ -76,7 +81,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const { user_id, items, payment_method, notes } = await request.json();
+    const { user_id, items, payment_method, notes, cash_given } = await request.json();
 
     if (!items || !Array.isArray(items) || items.length === 0) {
       return NextResponse.json<ApiResponse>(
@@ -118,6 +123,8 @@ export async function POST(request: NextRequest) {
       };
     });
 
+    const changeAmount = cash_given ? Math.max(0, parseFloat(cash_given) - total) : null;
+
     if (payment_method === 'credit') {
       const { month, year } = getCurrentMonthYear();
       const dbCredit = supabase.from('credit_allowances') as any;
@@ -152,16 +159,19 @@ export async function POST(request: NextRequest) {
         staff_id: session.role === 'staff' || session.role === 'admin' || session.role === 'manager'
           ? session.user_id
           : null,
-        status: 'pending',
+        status: payment_method === 'cash' ? 'pending' : 'pending',
         total,
         payment_method,
+        cash_given: cash_given ?? null,
+        change_amount: changeAmount,
         notes: notes ?? null,
       },
       orderItems,
     );
 
-    // Decrement stock for each item in the order
+    // Decrement stock for each item in the order (skip for cash - deferred to staff confirmation)
     const menuDb = supabase.from('menu_items') as any;
+    if (payment_method !== 'cash') {
     for (const item of orderItems) {
       const { data: menuItem, error: fetchError } = await menuDb
         .select('stock_quantity, available')
@@ -177,6 +187,7 @@ export async function POST(request: NextRequest) {
         }
         await menuDb.update(menuUpdates).eq('id', item.item_id);
       }
+    }
     }
 
     if (payment_method === 'credit') {

@@ -46,6 +46,8 @@ export interface Order {
   status: 'pending' | 'completed' | 'cancelled';
   total: number;
   payment_method: 'cash' | 'card' | 'credit';
+  cash_given?: number | null;
+  change_amount?: number | null;
   notes: string | null;
   created_at: string;
   items?: OrderItem[];

@@ -25,6 +25,7 @@ import {
 } from "@phosphor-icons/react"
 import { cn, formatPrice } from "@/lib/utils"
 import { BarcodeScanner } from "@/components/ui/barcode-scanner"
+import { QRCodeSVG } from "qrcode.react"
 import type { MenuItem, MenuCategory, User, ApiResponse } from "@/types"
 
 interface CartItem extends MenuItem {
@@ -47,6 +48,7 @@ export default function OrderPage() {
   const [orderNumber, setOrderNumber] = useState("")
   const [error, setError] = useState<string | null>(null)
   const [scannerOpen, setScannerOpen] = useState(false)
+  const [cashGiven, setCashGiven] = useState("")
 
   // Fetch current user
   useEffect(() => {
@@ -131,6 +133,7 @@ export default function OrderPage() {
 
   const cartTotal = cart.reduce((sum, ci) => sum + ci.price * ci.cartQuantity, 0)
   const cartItemCount = cart.reduce((sum, ci) => sum + ci.cartQuantity, 0)
+  const changeAmount = cashGiven ? Math.max(0, parseFloat(cashGiven) - cartTotal) : 0
 
   const canUseCredit = user?.role === "faculty"
 
@@ -185,6 +188,7 @@ export default function OrderPage() {
           items: orderItems,
           total: cartTotal,
           payment_method: paymentMethod,
+          cash_given: paymentMethod === 'cash' ? parseFloat(cashGiven) : null,
         }),
       })
 
@@ -206,6 +210,7 @@ export default function OrderPage() {
     setOrderPlaced(false)
     setOrderNumber("")
     setPaymentMethod("cash")
+    setCashGiven("")
   }
 
   // Filtering
@@ -251,23 +256,26 @@ export default function OrderPage() {
   // Success screen
   if (orderPlaced) {
     return (
-      <div className="flex flex-col items-center justify-center gap-4 py-24">
-        <div className="flex size-16 items-center justify-center rounded-full bg-emerald-100 dark:bg-emerald-900/30">
-          <CheckCircle className="size-8 text-emerald-600 dark:text-emerald-400" />
-        </div>
-        <div className="text-center">
-          <h2 className="font-heading text-sm font-medium">Order Placed!</h2>
-          <p className="mt-1 text-xs text-muted-foreground">
-            Order #{orderNumber} has been sent to the kitchen.
-          </p>
-        </div>
+      <div className="flex flex-col items-center justify-center gap-4 py-16">
+        <CheckCircle className="size-12 text-emerald-500" />
+        <h2 className="font-heading text-sm font-medium">Order Placed!</h2>
+        <p className="text-xs text-muted-foreground">Order #{orderNumber}</p>
+
+        {/* QR Code for cash orders */}
+        {paymentMethod === 'cash' && orderNumber && (
+          <div className="flex flex-col items-center gap-3">
+            <div className="bg-white p-3 rounded-lg">
+              <QRCodeSVG value={orderNumber} size={160} level="M" />
+            </div>
+            <p className="text-xs text-muted-foreground text-center max-w-xs">
+              Please show this QR code to the staff at the counter for payment confirmation.
+            </p>
+          </div>
+        )}
+
         <div className="flex gap-2 mt-2">
-          <Button size="sm" onClick={startNewOrder}>
-            Place Another Order
-          </Button>
-          <Button variant="outline" size="sm" onClick={() => router.push("/dashboard")}>
-            Go to Dashboard
-          </Button>
+          <Button size="sm" onClick={startNewOrder}>Place Another Order</Button>
+          <Button variant="outline" size="sm" onClick={() => router.push("/dashboard")}>Go to Dashboard</Button>
         </div>
       </div>
     )
@@ -336,6 +344,16 @@ export default function OrderPage() {
                         )}
                       >
                         <CardContent className="p-3 flex flex-col gap-1.5">
+                          {/* Image */}
+                          {item.image_url ? (
+                            <div className="h-20 -mx-3 -mt-3 mb-1 overflow-hidden">
+                              <img src={item.image_url} alt={item.name} className="h-full w-full object-cover" />
+                            </div>
+                          ) : (
+                            <div className="h-20 -mx-3 -mt-3 mb-1 flex items-center justify-center bg-muted">
+                              <ForkKnife className="size-6 text-muted-foreground/40" />
+                            </div>
+                          )}
                           <p className="text-xs font-medium leading-tight">{item.name}</p>
                           {item.description && (
                             <p className="text-[10px] text-muted-foreground line-clamp-2">
@@ -459,7 +477,7 @@ export default function OrderPage() {
 
         {/* Payment method */}
         <div className="mb-3">
-          <Select value={paymentMethod} onValueChange={setPaymentMethod}>
+          <Select value={paymentMethod} onValueChange={(v) => { setPaymentMethod(v); if (v !== 'cash') setCashGiven("") }}>
             <SelectTrigger className="w-full h-8 text-xs">
               <SelectValue />
             </SelectTrigger>
@@ -481,12 +499,43 @@ export default function OrderPage() {
           </Alert>
         )}
 
+        {/* Cash input */}
+        {paymentMethod === 'cash' && cart.length > 0 && (
+          <div className="flex flex-col gap-2 mb-3">
+            <div className="flex flex-col gap-1">
+              <label className="text-xs text-muted-foreground">Cash Given</label>
+              <Input
+                type="number"
+                min="0"
+                step="0.01"
+                placeholder="Enter cash amount"
+                value={cashGiven}
+                onChange={(e) => setCashGiven(e.target.value)}
+                className="h-8 text-xs"
+              />
+            </div>
+            {cashGiven && parseFloat(cashGiven) >= cartTotal && (
+              <div className="flex items-center justify-between text-xs">
+                <span className="text-muted-foreground">Change</span>
+                <span className="font-heading font-medium text-emerald-600 dark:text-emerald-400">
+                  {formatPrice(changeAmount)}
+                </span>
+              </div>
+            )}
+            {cashGiven && parseFloat(cashGiven) < cartTotal && (
+              <p className="text-[10px] text-destructive">
+                Insufficient cash. Need at least {formatPrice(cartTotal)}
+              </p>
+            )}
+          </div>
+        )}
+
         {/* Place order button */}
         <Button
           className="w-full"
           size="sm"
           onClick={placeOrder}
-          disabled={placing || cart.length === 0}
+          disabled={placing || cart.length === 0 || (paymentMethod === 'cash' && (!cashGiven || parseFloat(cashGiven) < cartTotal))}
         >
           {placing ? (
             <>
