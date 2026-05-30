@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert"
-import { ClipboardTextIcon, CurrencyDollarIcon, ShoppingCartIcon, PlusIcon, ListIcon, CreditCardIcon, WarningCircleIcon } from "@phosphor-icons/react"
+import { ClipboardTextIcon, CurrencyDollarIcon, ShoppingCartIcon, PackageIcon, PlusIcon, ListIcon, CreditCardIcon, WarningCircleIcon } from "@phosphor-icons/react"
 import { formatPrice } from "@/lib/utils"
 import type { DashboardStats, Order } from "@/types"
 
@@ -51,10 +51,15 @@ export default function ManagerDashboardPage() {
     )
   }
 
+  const lowStockTotal = stats?.low_stock_items && typeof stats.low_stock_items === 'object'
+    ? (stats.low_stock_items as any).total ?? 0
+    : 0;
+
   const statCards = [
     { label: "Today's Orders", value: stats?.total_orders_today, icon: ClipboardTextIcon },
     { label: "Today's Revenue", value: stats?.total_revenue_today != null ? formatPrice(stats.total_revenue_today, false) : undefined, icon: CurrencyDollarIcon, prefix: "PHP " },
     { label: "Active Orders", value: stats?.active_orders, icon: ShoppingCartIcon },
+    { label: "Low Stock Items", value: lowStockTotal, icon: PackageIcon },
   ]
 
   const statusVariant: Record<string, "default" | "secondary" | "destructive" | "outline" | "ghost"> = {
@@ -92,12 +97,19 @@ export default function ManagerDashboardPage() {
         ))}
       </div>
 
-      {(stats?.low_stock_items ?? 0) > 0 && (
+      {typeof stats?.low_stock_items === 'object' && stats?.low_stock_items != null && (stats.low_stock_items as any).total > 0 && (
         <Alert variant="destructive">
           <WarningCircleIcon className="size-4" />
           <AlertTitle>Low Stock Alert</AlertTitle>
-          <AlertDescription>
-            {stats?.low_stock_items} item{stats?.low_stock_items !== 1 ? "s are" : " is"} running low or unavailable.
+          <AlertDescription className="flex flex-col gap-1">
+            <span>
+              {(stats.low_stock_items as any).total} item{(stats.low_stock_items as any).total !== 1 ? "s are" : " is"} running low.
+            </span>
+            <span className="text-xs opacity-80">
+              {(stats.low_stock_items as any).inventory > 0 && `${(stats.low_stock_items as any).inventory} inventory item${(stats.low_stock_items as any).inventory !== 1 ? 's' : ''}`}
+              {(stats.low_stock_items as any).inventory > 0 && (stats.low_stock_items as any).menu_items > 0 && ' · '}
+              {(stats.low_stock_items as any).menu_items > 0 && `${(stats.low_stock_items as any).menu_items} menu item${(stats.low_stock_items as any).menu_items !== 1 ? 's' : ''}`}
+            </span>
           </AlertDescription>
         </Alert>
       )}
@@ -119,6 +131,12 @@ export default function ManagerDashboardPage() {
           <a href="/dashboard/manager/credits">
             <CreditCardIcon className="size-4" />
             Manage Credit Limits
+          </a>
+        </Button>
+        <Button variant="outline" size="sm" asChild>
+          <a href="/dashboard/manager/inventory">
+            <PackageIcon className="size-4" />
+            Inventory
           </a>
         </Button>
       </div>

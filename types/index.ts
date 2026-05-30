@@ -29,6 +29,7 @@ export interface MenuItem {
   price: number;
   image_url: string | null;
   available: boolean;
+  stock_quantity: number;
   created_at: string;
 }
 
@@ -94,8 +95,39 @@ export interface DashboardStats {
   total_revenue_today: number;
   active_orders: number;
   total_users: number;
-  low_stock_items: number;
+  low_stock_items: { inventory: number; menu_items: number; total: number };
   pending_credits: number;
+}
+
+export interface InventoryItem {
+  id: string;
+  name: string;
+  category: 'produce' | 'meat' | 'dairy' | 'dry_goods' | 'beverage' | 'other';
+  quantity: number;
+  unit: string;
+  min_stock_level: number;
+  unit_cost: number | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface InventoryMovement {
+  id: string;
+  item_id: string;
+  type: 'addition' | 'removal' | 'adjustment';
+  quantity_change: number;
+  previous_quantity: number;
+  new_quantity: number;
+  reason: string | null;
+  performed_by: string;
+  performed_by_name?: string;
+  created_at: string;
+}
+
+export interface LowStockSummary {
+  inventory: InventoryItem[];
+  menu_items: (MenuItem & { category_name?: string })[];
+  total: number;
 }
 
 export interface ApiResponse<T = any> {

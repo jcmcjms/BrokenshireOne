@@ -9,6 +9,8 @@ import type {
   DbOrderItem,
   DbCreditAllowance,
   DbCreditTransaction,
+  DbInventoryItem,
+  DbInventoryMovement,
 } from '@/types/database';
 
 export async function getUserByEmail(email: string): Promise<DbUser | null> {
@@ -154,12 +156,32 @@ export async function getDashboardStats() {
     0,
   );
 
+  // Low stock counts (fetch and filter in JS since Supabase can't do column-to-column comparison)
+  const [allInventoryRes, lowStockMenuRes] = await Promise.all([
+    supabase
+      .from('inventory_items')
+      .select('id, quantity, min_stock_level'),
+    supabase
+      .from('menu_items')
+      .select('id, stock_quantity', { count: 'exact', head: true })
+      .gt('stock_quantity', 0)
+      .lt('stock_quantity', 5),
+  ]);
+
+  const lowStockInventoryCount = (allInventoryRes.data ?? []).filter(
+    (item: any) => item.min_stock_level > 0 && item.quantity < item.min_stock_level,
+  ).length;
+
   return {
     total_orders_today: ordersRes.count ?? 0,
     total_revenue_today,
     active_orders: activeRes.count ?? 0,
     total_users: usersRes.count ?? 0,
-    low_stock_items: 0,
+    low_stock_items: {
+      inventory: lowStockInventoryCount,
+      menu_items: lowStockMenuRes.count ?? 0,
+      total: lowStockInventoryCount + (lowStockMenuRes.count ?? 0),
+    },
     pending_credits: pendingRes.count ?? 0,
   };
 }
@@ -378,4 +400,164 @@ export async function getAllRoles(): Promise<{ id: string; name: string; descrip
 
   if (error) throw error;
   return (data as any) ?? [];
+}
+
+// ============================================================================
+// Inventory Queries
+// ============================================================================
+
+export async function getInventoryItems(category?: string): Promise<DbInventoryItem[]> {
+  let query = supabase
+    .from('inventory_items')
+    .select('*')
+    .order('name');
+
+  if (category) {
+    query = query.eq('category', category);
+  }
+
+  const { data, error } = await query;
+  if (error) throw error;
+  return (data as unknown as DbInventoryItem[]) ?? [];
+}
+
+export async function getInventoryItemById(id: string): Promise<DbInventoryItem | null> {
+  const { data, error } = await supabase
+    .from('inventory_items')
+    .select('*')
+    .eq('id', id)
+    .single();
+
+  if (error) return null;
+  return data as unknown as DbInventoryItem;
+}
+
+export async function createInventoryItem(item: {
+  name: string;
+  category: string;
+  quantity: number;
+  unit: string;
+  min_stock_level: number;
+  unit_cost?: number | null;
+}): Promise<DbInventoryItem> {
+  const { data, error } = await supabase
+    .from('inventory_items')
+    .insert(item as any)
+    .select()
+    .single();
+
+  if (error) throw error;
+  return data as unknown as DbInventoryItem;
+}
+
+export async function updateInventoryItem(
+  id: string,
+  updates: {
+    name?: string;
+    category?: string;
+    unit?: string;
+    min_stock_level?: number;
+    unit_cost?: number | null;
+  },
+): Promise<DbInventoryItem> {
+  const { data, error } = await supabase
+    .from('inventory_items')
+    .update(updates as any)
+    .eq('id', id)
+    .select()
+    .single();
+
+  if (error) throw error;
+  return data as unknown as DbInventoryItem;
+}
+
+export async function deleteInventoryItem(id: string): Promise<void> {
+  const { error } = await supabase
+    .from('inventory_items')
+    .delete()
+    .eq('id', id);
+
+  if (error) throw error;
+}
+
+export async function recordInventoryMovement(movement: {
+  item_id: string;
+  type: 'addition' | 'removal' | 'adjustment';
+  quantity_change: number;
+  previous_quantity: number;
+  new_quantity: number;
+  reason?: string | null;
+  performed_by: string;
+}): Promise<DbInventoryMovement> {
+  const { data, error } = await supabase
+    .from('inventory_movements')
+    .insert(movement as any)
+    .select()
+    .single();
+
+  if (error) throw error;
+  return data as unknown as DbInventoryMovement;
+}
+
+export async function getInventoryMovements(itemId: string): Promise<DbInventoryMovement[]> {
+  const { data, error } = await supabase
+    .from('inventory_movements')
+    .select('*, users(name)')
+    .eq('item_id', itemId)
+    .order('created_at', { ascending: false })
+    .limit(20);
+
+  if (error) throw error;
+  return (data as unknown as DbInventoryMovement[]) ?? [];
+}
+
+export async function getLowStockInventory(): Promise<DbInventoryItem[]> {
+  const { data, error } = await supabase
+    .from('inventory_items')
+    .select('*')
+    .order('name');
+
+  if (error) throw error;
+  return ((data as unknown as DbInventoryItem[]) ?? []).filter(
+    (item) => item.min_stock_level > 0 && item.quantity < item.min_stock_level,
+  );
+}
+
+export async function getLowStockMenuItems(): Promise<DbMenuItem[]> {
+  const { data, error } = await supabase
+    .from('menu_items')
+    .select('*, menu_categories(name)')
+    .gt('stock_quantity', 0)
+    .lt('stock_quantity', 5)
+    .order('stock_quantity', { ascending: true });
+
+  if (error) throw error;
+  return (data as unknown as DbMenuItem[]) ?? [];
+}
+
+export async function decrementMenuItemStock(itemId: string, quantity: number = 1): Promise<void> {
+  // Get current stock
+  const { data: item, error: fetchError } = await supabase
+    .from('menu_items')
+    .select('stock_quantity, available')
+    .eq('id', itemId)
+    .single();
+
+  if (fetchError) throw fetchError;
+  if (!item) throw new Error(`Menu item ${itemId} not found`);
+
+  const currentStock = (item as any).stock_quantity ?? 0;
+  const newStock = Math.max(0, currentStock - quantity);
+
+  const updates: any = { stock_quantity: newStock };
+  if (newStock === 0) {
+    updates.available = false;
+  }
+
+  const { error } = await supabase
+    .from('menu_items')
+    .update(updates)
+    .eq('id', itemId);
+
+  if (error) throw error;
 }
