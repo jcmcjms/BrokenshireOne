@@ -58,7 +58,9 @@ const routePermissionMap: Record<string, string[]> = {
   "/dashboard/faculty/orders": ["orders.view_own"],
   "/dashboard/faculty/credits": ["credits.view_own"],
   "/dashboard/student": [],
+  "/dashboard/student/menu": ["menu.view"],
   "/dashboard/student/orders": ["orders.view_own"],
+  "/dashboard/faculty/menu": ["menu.view"],
   "/dashboard/order": ["orders.process"],
 }
 
@@ -98,12 +100,14 @@ const navConfig: Record<string, NavItem[]> = {
   ],
   faculty: [
     { label: "Dashboard", href: "/dashboard/faculty", icon: House },
+    { label: "Menu", href: "/dashboard/faculty/menu", icon: ForkKnife },
     { label: "Place Order", href: "/dashboard/order", icon: ShoppingCart },
     { label: "My Orders", href: "/dashboard/faculty/orders", icon: Receipt },
     { label: "My Credits", href: "/dashboard/faculty/credits", icon: CreditCard },
   ],
   student: [
     { label: "Dashboard", href: "/dashboard/student", icon: House },
+    { label: "Menu", href: "/dashboard/student/menu", icon: ForkKnife },
     { label: "Place Order", href: "/dashboard/order", icon: ShoppingCart },
     { label: "My Orders", href: "/dashboard/student/orders", icon: Receipt },
   ],
@@ -116,6 +120,7 @@ function getPageTitle(pathname: string): string {
   if (pathname === "/dashboard/faculty") return "Faculty Dashboard"
   if (pathname === "/dashboard/student") return "Student Dashboard"
   if (pathname.includes("/users")) return "Users"
+  if (pathname.includes("/student/menu") || pathname.includes("/faculty/menu")) return "Menu"
   if (pathname.includes("/menu")) return "Menu Management"
   if (pathname.includes("/orders")) return "Orders"
   if (pathname.includes("/credits")) return "Credits"
