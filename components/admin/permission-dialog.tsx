@@ -32,16 +32,33 @@ export default function PermissionDialog({ open, onOpenChange, userId, userName 
         fetch(`/api/users/${userId}/permissions`).then((r) => r.json()),
       ])
         .then(([permsRes, userRes]) => {
-          setAllPermissions(permsRes.data ?? permsRes ?? [])
-          const userData = userRes.data ?? userRes
-          setUserPerms(userData)
-          // Clone overrides for local editing
-          setLocalOverrides({ ...(userData?.overrides ?? {}) })
+          // Handle API errors gracefully
+          if (!permsRes.success) {
+            toast.error(permsRes.error || "Failed to load permissions")
+            setAllPermissions([])
+          } else {
+            setAllPermissions(permsRes.data ?? [])
+          }
+
+          if (!userRes.success) {
+            toast.error(userRes.error || "Failed to load user permissions")
+            setUserPerms(null)
+            setLocalOverrides({})
+          } else {
+            const userData = userRes.data
+            setUserPerms(userData)
+            setLocalOverrides({ ...(userData?.overrides ?? {}) })
+          }
         })
         .catch(() => toast.error("Failed to load permissions"))
         .finally(() => setLoading(false))
     }
   }, [open, userId])
+
+  // Safe access to role_permissions (guard against null userPerms)
+  function getRolePermissionsSet(): string[] {
+    return userPerms?.role_permissions ?? []
+  }
 
   // Get effective state for a permission:
   // true = granted, false = denied, null = role-based (use role_permissions)
@@ -52,10 +69,7 @@ export default function PermissionDialog({ open, onOpenChange, userId, userName 
       if (ov !== null) return ov
     }
     // Fall back to role-based
-    if (userPerms) {
-      return userPerms.role_permissions.includes(code) ? true : false
-    }
-    return false
+    return getRolePermissionsSet().includes(code)
   }
 
   // Get override state: true = grant, false = revoke, null = no override
@@ -68,13 +82,14 @@ export default function PermissionDialog({ open, onOpenChange, userId, userName 
   function togglePermission(code: string) {
     const current = getOverrideState(code)
     const effective = getEffectiveState(code)
+    const rolePerms = getRolePermissionsSet()
 
     if (current === null) {
       // No override yet — set opposite of effective
       setLocalOverrides((prev) => ({ ...prev, [code]: !effective }))
     } else if (current === true) {
       // Currently granted as override — either revoke or reset
-      if (effective === true && userPerms?.role_permissions.includes(code)) {
+      if (effective === true && rolePerms.includes(code)) {
         // Was role-based, override was granting — reset to null (role default)
         setLocalOverrides((prev) => {
           const next = { ...prev }

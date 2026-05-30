@@ -410,64 +410,74 @@ export async function getAllPermissions(): Promise<DbPermission[]> {
 }
 
 export async function getUserPermissionOverrides(userId: string): Promise<DbUserPermission[]> {
-  const { data, error } = await supabase
-    .from('user_permissions')
-    .select('*, permissions!inner(code)')
-    .eq('user_id', userId);
+  try {
+    const { data, error } = await supabase
+      .from('user_permissions')
+      .select('*, permissions!inner(code)')
+      .eq('user_id', userId);
 
-  if (error) throw error;
-  return (data as unknown as DbUserPermission[]) ?? [];
+    if (error) return [];
+    return (data as unknown as DbUserPermission[]) ?? [];
+  } catch {
+    // Table may not exist yet (migration not applied)
+    return [];
+  }
 }
 
 export async function setUserPermissionOverrides(
   userId: string,
   overrides: Record<string, boolean | null>,
 ): Promise<void> {
-  // Get all permission IDs
-  const { data: allPerms, error: permError } = await supabase
-    .from('permissions')
-    .select('id, code');
+  try {
+    // Get all permission IDs
+    const { data: allPerms, error: permError } = await supabase
+      .from('permissions')
+      .select('id, code');
 
-  if (permError) throw permError;
-  const permMap = new Map((allPerms ?? []).map((p: any) => [p.code, p.id]));
+    if (permError) throw permError;
+    const permMap = new Map((allPerms ?? []).map((p: any) => [p.code, p.id]));
 
-  // Process each override
-  for (const [code, value] of Object.entries(overrides)) {
-    const permissionId = permMap.get(code);
-    if (!permissionId) continue;
+    // Process each override
+    for (const [code, value] of Object.entries(overrides)) {
+      const permissionId = permMap.get(code);
+      if (!permissionId) continue;
 
-    if (value === null) {
-      // Remove override — reset to role default
-      await supabase
-        .from('user_permissions')
-        .delete()
-        .eq('user_id', userId)
-        .eq('permission_id', permissionId);
-    } else {
-      // Upsert override (grant or revoke)
-      const existing = await supabase
-        .from('user_permissions')
-        .select('id')
-        .eq('user_id', userId)
-        .eq('permission_id', permissionId)
-        .maybeSingle();
-
-      if ((existing as any)?.data) {
+      if (value === null) {
+        // Remove override — reset to role default
         await supabase
           .from('user_permissions')
-          .update({ grant: value } as any)
+          .delete()
           .eq('user_id', userId)
           .eq('permission_id', permissionId);
       } else {
-        await supabase
+        // Upsert override (grant or revoke)
+        const existing = await supabase
           .from('user_permissions')
-          .insert({
-            user_id: userId,
-            permission_id: permissionId,
-            grant: value,
-          } as any);
+          .select('id')
+          .eq('user_id', userId)
+          .eq('permission_id', permissionId)
+          .maybeSingle();
+
+        if ((existing as any)?.data) {
+          await supabase
+            .from('user_permissions')
+            .update({ grant: value } as any)
+            .eq('user_id', userId)
+            .eq('permission_id', permissionId);
+        } else {
+          await supabase
+            .from('user_permissions')
+            .insert({
+              user_id: userId,
+              permission_id: permissionId,
+              grant: value,
+            } as any);
+        }
       }
     }
+  } catch {
+    // Table may not exist yet (migration not applied)
+    throw new Error('Permission overrides table not available. Run migration 00003.');
   }
 }
 
