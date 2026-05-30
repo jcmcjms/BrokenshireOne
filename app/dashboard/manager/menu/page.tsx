@@ -12,6 +12,7 @@ import { Separator } from "@/components/ui/separator"
 import { Skeleton } from "@/components/ui/skeleton"
 import { toast } from "sonner"
 import { PlusIcon, PencilIcon, TrashIcon, ImageIcon, FolderPlus, ListBullets } from "@phosphor-icons/react"
+import { ImageUploader } from "@/components/ui/image-uploader"
 import { formatPrice } from "@/lib/utils"
 import type { MenuItem, MenuCategory } from "@/types"
 
@@ -34,7 +35,7 @@ export default function ManagerMenuPage() {
   const [editCatName, setEditCatName] = useState("")
   const [catSaving, setCatSaving] = useState(false)
 
-  const emptyForm = { name: "", category_id: "", price: "", description: "", available: true }
+  const emptyForm = { name: "", category_id: "", price: "", description: "", available: true, image_url: "" }
   const [form, setForm] = useState(emptyForm)
 
   const fetchData = useCallback(async () => {
@@ -72,6 +73,7 @@ export default function ManagerMenuPage() {
       price: item.price.toString(),
       description: item.description,
       available: item.available,
+      image_url: item.image_url ?? "",
     })
     setItemDialogOpen(true)
   }
@@ -89,6 +91,7 @@ export default function ManagerMenuPage() {
         price: parseFloat(form.price),
         description: form.description,
         available: form.available,
+        image_url: form.image_url || null,
       }
       const res = await fetch(editingItem ? `/api/menu/items/${editingItem.id}` : "/api/menu/items", {
         method: editingItem ? "PATCH" : "POST",
@@ -287,6 +290,14 @@ export default function ManagerMenuPage() {
             <div className="flex flex-col gap-1">
               <label className="text-xs text-muted-foreground">Name *</label>
               <Input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder="Item name" />
+            </div>
+            <div className="flex flex-col gap-1">
+              <label className="text-xs text-muted-foreground">Image</label>
+              <ImageUploader
+                value={form.image_url || null}
+                onChange={(url) => setForm({ ...form, image_url: url || "" })}
+                disabled={saving}
+              />
             </div>
             <div className="flex flex-col gap-1">
               <label className="text-xs text-muted-foreground">Category *</label>
