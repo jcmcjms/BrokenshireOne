@@ -21,7 +21,7 @@ function generateEmployeeId(role: string): string {
   return `${prefix}-${random}`;
 }
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
     const session = await getSession();
     if (!session) {
@@ -31,17 +31,31 @@ export async function GET() {
       );
     }
 
-    if (session.role !== 'admin') {
+    // Admin & manager can list all users. Staff can search users (for customer lookup at checkout).
+    if (session.role !== 'admin' && session.role !== 'manager' && session.role !== 'staff') {
       return NextResponse.json<ApiResponse>(
         { success: false, error: 'Forbidden' },
         { status: 403 },
       );
     }
 
-    const { data: users, error } = await supabase
+    const { searchParams } = new URL(request.url);
+    const searchQuery = searchParams.get('search');
+
+    let query = supabase
       .from('users')
       .select('*, roles(name)')
       .order('name', { ascending: true });
+
+    // If a search query is provided, filter by name or employee_id
+    if (searchQuery && searchQuery.length > 0) {
+      const pattern = `%${searchQuery}%`;
+      query = query
+        .or(`name.ilike.${pattern},employee_id.ilike.${pattern}`)
+        .limit(20);
+    }
+
+    const { data: users, error } = await query;
 
     if (error) {
       console.error('[users] Query error:', error.message);
@@ -51,10 +65,24 @@ export async function GET() {
       );
     }
 
+    // Staff only get basic info (id, name, email, employee_id) for customer lookup
     const safeUsers = (users as unknown as DbUser[]).map(user => {
       const roleName = (user as any).roles?.name ?? 'student';
       const { password_hash, roles, ...safeUser } = user as any;
-      return { ...safeUser, role: roleName };
+      const result: Record<string, unknown> = { ...safeUser, role: roleName };
+
+      // Staff only need minimal fields for customer search
+      if (session.role === 'staff') {
+        return {
+          id: result.id as string,
+          name: result.name as string,
+          email: result.email as string,
+          employee_id: result.employee_id as string | null,
+          role: roleName,
+        };
+      }
+
+      return result;
     });
 
     return NextResponse.json<ApiResponse>({

@@ -13,7 +13,7 @@ export async function GET() {
       );
     }
 
-    if (session.role !== 'admin') {
+    if (session.role !== 'admin' && session.role !== 'manager') {
       return NextResponse.json<ApiResponse>(
         { success: false, error: 'Forbidden' },
         { status: 403 },
