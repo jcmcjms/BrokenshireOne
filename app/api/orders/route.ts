@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getSession } from '@/lib/auth/session';
 import { supabase } from '@/lib/supabase/client';
 import { createOrder, deductCredit } from '@/lib/supabase/queries';
+import { createNotification, getStaffUserIds } from '@/lib/supabase/notifications';
 import type { ApiResponse } from '@/types';
 
 function generateOrderNumber(): string {
@@ -196,6 +197,22 @@ export async function POST(request: NextRequest) {
     if (payment_method === 'credit') {
       const { month, year } = getCurrentMonthYear();
       await deductCredit(targetUserId, total, order.id, month, year);
+    }
+
+    // Notify staff about new cash orders
+    if (payment_method === 'cash') {
+      const staffIds = await getStaffUserIds();
+      const orderNum = (order as any)?.order_number ?? 'Unknown';
+      const orderTotal = total.toFixed(2);
+      for (const staffId of staffIds) {
+        await createNotification({
+          user_id: staffId,
+          type: 'new_order',
+          title: 'New Cash Order',
+          message: `Order #${orderNum} — PHP ${orderTotal}`,
+          data: { order_id: (order as any).id, order_number: orderNum },
+        });
+      }
     }
 
     const dbOrder = supabase.from('orders') as any;

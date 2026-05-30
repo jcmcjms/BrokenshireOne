@@ -16,12 +16,17 @@ import { cn, formatPrice } from "@/lib/utils"
 import { BarcodeScanner } from "@/components/ui/barcode-scanner"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog"
 import type { MenuItem, MenuCategory, User, Order } from "@/types"
+import { useMobile } from "@/components/mobile/hooks/use-mobile"
+import { MobileStaffPage } from "@/components/mobile/mobile-staff-page"
 
 interface CartItem extends MenuItem {
   cartQuantity: number
 }
 
 export default function StaffCounterPage() {
+  const isMobile = useMobile()
+  if (isMobile) return <MobileStaffPage />
+
   const [items, setItems] = useState<MenuItem[]>([])
   const [categories, setCategories] = useState<MenuCategory[]>([])
   const [loading, setLoading] = useState(true)

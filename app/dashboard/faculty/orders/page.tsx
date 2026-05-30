@@ -10,6 +10,8 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { ListIcon } from "@phosphor-icons/react"
 import { formatPrice } from "@/lib/utils"
 import type { Order } from "@/types"
+import { useMobile } from "@/components/mobile/hooks/use-mobile"
+import MobileOrdersPage from "@/components/mobile/mobile-orders-page"
 
 const statusVariant: Record<string, "default" | "secondary" | "destructive" | "outline" | "ghost"> = {
   pending: "secondary",
@@ -18,6 +20,9 @@ const statusVariant: Record<string, "default" | "secondary" | "destructive" | "o
 }
 
 export default function FacultyOrdersPage() {
+  const isMobile = useMobile()
+  if (isMobile) return <MobileOrdersPage fetchUrl="/api/orders?mine=true" title="My Orders" subtitle="View your order history" />
+
   const [orders, setOrders] = useState<Order[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)

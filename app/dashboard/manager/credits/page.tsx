@@ -12,8 +12,13 @@ import { toast } from "sonner"
 import { CreditCardIcon, PencilIcon, CurrencyDollarIcon } from "@phosphor-icons/react"
 import { formatPrice } from "@/lib/utils"
 import type { CreditAllowance } from "@/types"
+import { useMobile } from "@/components/mobile/hooks/use-mobile"
+import MobileManagerCreditsPage from "@/components/mobile/mobile-manager-credits"
 
 export default function ManagerCreditsPage() {
+  const isMobile = useMobile()
+  if (isMobile) return <MobileManagerCreditsPage />
+
   const [allowances, setAllowances] = useState<CreditAllowance[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)

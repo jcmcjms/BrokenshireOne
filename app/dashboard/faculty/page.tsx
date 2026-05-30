@@ -9,8 +9,13 @@ import { Button } from "@/components/ui/button"
 import { cn, formatPrice } from "@/lib/utils"
 import { UserIcon, ClipboardTextIcon, CurrencyDollarIcon, CreditCardIcon, ClockIcon } from "@phosphor-icons/react"
 import type { Order, CreditAllowance } from "@/types"
+import { useMobile } from "@/components/mobile/hooks/use-mobile"
+import MobileFacultyDashboard from "@/components/mobile/mobile-faculty-dashboard"
 
 export default function FacultyDashboardPage() {
+  const isMobile = useMobile()
+  if (isMobile) return <MobileFacultyDashboard />
+
   const [credit, setCredit] = useState<CreditAllowance | null>(null)
   const [orders, setOrders] = useState<Order[]>([])
   const [loading, setLoading] = useState(true)

@@ -18,8 +18,13 @@ import { BulkImportDialog } from "@/components/ui/bulk-import-dialog"
 import { cn, formatPrice } from "@/lib/utils"
 import { MENU_UNITS, CATEGORY_DEFAULT_UNIT } from "@/lib/units"
 import type { MenuItem, MenuCategory } from "@/types"
+import { useMobile } from "@/components/mobile/hooks/use-mobile"
+import MobileManagerMenuPage from "@/components/mobile/mobile-manager-menu"
 
 export default function ManagerMenuPage() {
+  const isMobile = useMobile()
+  if (isMobile) return <MobileManagerMenuPage />
+
   const [items, setItems] = useState<MenuItem[]>([])
   const [categories, setCategories] = useState<MenuCategory[]>([])
   const [loading, setLoading] = useState(true)

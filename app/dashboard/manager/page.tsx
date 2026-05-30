@@ -11,8 +11,13 @@ import { DatePicker } from "@/components/ui/date-picker"
 import { ClipboardTextIcon, CurrencyDollarIcon, ShoppingCartIcon, PackageIcon, PlusIcon, ListIcon, CreditCardIcon, WalletIcon, WarningCircleIcon } from "@phosphor-icons/react"
 import { formatPrice } from "@/lib/utils"
 import type { DashboardStats, Order } from "@/types"
+import { useMobile } from "@/components/mobile/hooks/use-mobile"
+import MobileManagerDashboard from "@/components/mobile/mobile-manager-dashboard"
 
 export default function ManagerDashboardPage() {
+  const isMobile = useMobile()
+  if (isMobile) return <MobileManagerDashboard />
+
   const [stats, setStats] = useState<DashboardStats | null>(null)
   const [recentOrders, setRecentOrders] = useState<Order[]>([])
   const [loading, setLoading] = useState(true)

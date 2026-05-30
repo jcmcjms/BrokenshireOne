@@ -17,6 +17,12 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { cn } from "@/lib/utils"
 import type { User, ApiResponse } from "@/types"
+import { NotificationProvider, useNotifications } from "@/components/notifications/notification-provider"
+import { NotificationBellWidget } from "@/components/notifications/notification-bell-widget"
+import { useMobile } from "@/components/mobile/hooks/use-mobile"
+import { MobileLayout } from "@/components/mobile/mobile-layout"
+import { mobileNavConfig } from "@/components/mobile/bottom-nav"
+import type { MobileTab } from "@/components/mobile/bottom-nav"
 import {
   House,
   Users,
@@ -213,6 +219,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const [user, setUser] = useState<User | null>(null)
   const [loading, setLoading] = useState(true)
   const [mobileOpen, setMobileOpen] = useState(false)
+  const isMobile = useMobile()
 
   useEffect(() => {
     async function fetchUser() {
@@ -251,64 +258,80 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
   if (!user) return null
 
+  // Mobile layout
+  if (isMobile) {
+    const config = mobileNavConfig[user.role] ?? { primary: [], overflow: [] }
+    return (
+      <NotificationProvider user={user}>
+        <MobileLayout user={user} overflowItems={config.overflow}>
+          {children}
+        </MobileLayout>
+      </NotificationProvider>
+    )
+  }
+
+  // Desktop layout
   return (
-    <div className="flex min-h-screen">
-      <aside className="hidden w-48 shrink-0 border-r border-border bg-sidebar md:flex md:flex-col">
-        <SidebarContent navItems={navItems} pathname={pathname} user={user} />
-      </aside>
+    <NotificationProvider user={user}>
+      <div className="flex min-h-screen">
+        <aside className="hidden w-48 shrink-0 border-r border-border bg-sidebar md:flex md:flex-col">
+          <SidebarContent navItems={navItems} pathname={pathname} user={user} />
+        </aside>
 
-      <div className="flex flex-1 flex-col">
-        <header className="flex h-12 items-center justify-between border-b border-border px-4">
-          <div className="flex items-center gap-2">
-            <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
-              <SheetTrigger asChild>
-                <Button variant="ghost" size="icon" className="md:hidden">
-                  <List />
-                </Button>
-              </SheetTrigger>
-              <SheetContent side="left" showCloseButton={false} className="w-56 p-0">
-                <SidebarContent
-                  navItems={navItems}
-                  pathname={pathname}
-                  user={user}
-                  onNavigate={() => setMobileOpen(false)}
-                />
-              </SheetContent>
-            </Sheet>
-            <h1 className="text-sm font-medium">{getPageTitle(pathname)}</h1>
-          </div>
+        <div className="flex flex-1 flex-col">
+          <header className="flex h-12 items-center justify-between border-b border-border px-4">
+            <div className="flex items-center gap-2">
+              <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
+                <SheetTrigger asChild>
+                  <Button variant="ghost" size="icon" className="md:hidden">
+                    <List />
+                  </Button>
+                </SheetTrigger>
+                <SheetContent side="left" showCloseButton={false} className="w-56 p-0">
+                  <SidebarContent
+                    navItems={navItems}
+                    pathname={pathname}
+                    user={user}
+                    onNavigate={() => setMobileOpen(false)}
+                  />
+                </SheetContent>
+              </Sheet>
+              <h1 className="text-sm font-medium">{getPageTitle(pathname)}</h1>
+            </div>
 
-          <div className="flex items-center gap-2">
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="sm" className="gap-2">
-                  <Avatar size="sm">
-                    {user.avatar_url ? <AvatarImage src={user.avatar_url} alt={user.name} /> : null}
-                    <AvatarFallback>{user.name.charAt(0).toUpperCase()}</AvatarFallback>
-                  </Avatar>
-                  <span className="hidden sm:inline text-xs">{user.name}</span>
-                  <Badge variant="secondary" className="hidden sm:inline-flex text-[10px]">
-                    {user.role}
-                  </Badge>
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                <div className="px-2 py-1.5">
-                  <p className="text-xs font-medium">{user.name}</p>
-                  <p className="text-[10px] text-muted-foreground">{user.email}</p>
-                </div>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={handleLogout}>
-                  <SignOut />
-                  Logout
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-          </div>
-        </header>
+            <div className="flex items-center gap-2">
+              <NotificationBellWidget />
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" size="sm" className="gap-2">
+                    <Avatar size="sm">
+                      {user.avatar_url ? <AvatarImage src={user.avatar_url} alt={user.name} /> : null}
+                      <AvatarFallback>{user.name.charAt(0).toUpperCase()}</AvatarFallback>
+                    </Avatar>
+                    <span className="hidden sm:inline text-xs">{user.name}</span>
+                    <Badge variant="secondary" className="hidden sm:inline-flex text-[10px]">
+                      {user.role}
+                    </Badge>
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <div className="px-2 py-1.5">
+                    <p className="text-xs font-medium">{user.name}</p>
+                    <p className="text-[10px] text-muted-foreground">{user.email}</p>
+                  </div>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={handleLogout}>
+                    <SignOut />
+                    Logout
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
+          </header>
 
-        <main className="flex-1 overflow-auto p-4 md:p-6">{children}</main>
+          <main className="flex-1 overflow-auto p-4 md:p-6">{children}</main>
+        </div>
       </div>
-    </div>
+    </NotificationProvider>
   )
 }

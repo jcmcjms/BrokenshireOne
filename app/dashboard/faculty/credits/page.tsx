@@ -10,8 +10,13 @@ import { Separator } from "@/components/ui/separator"
 import { cn, formatPrice } from "@/lib/utils"
 import { CreditCardIcon, CurrencyDollarIcon, ClockIcon } from "@phosphor-icons/react"
 import type { CreditAllowance, CreditTransaction } from "@/types"
+import { useMobile } from "@/components/mobile/hooks/use-mobile"
+import MobileFacultyCreditsPage from "@/components/mobile/mobile-faculty-credits"
 
 export default function FacultyCreditsPage() {
+  const isMobile = useMobile()
+  if (isMobile) return <MobileFacultyCreditsPage />
+
   const [allowance, setAllowance] = useState<CreditAllowance | null>(null)
   const [transactions, setTransactions] = useState<CreditTransaction[]>([])
   const [loading, setLoading] = useState(true)

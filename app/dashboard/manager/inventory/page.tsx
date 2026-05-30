@@ -14,6 +14,8 @@ import AddItemDialog from "@/components/inventory/add-item-dialog"
 import AdjustStockDialog from "@/components/inventory/adjust-stock-dialog"
 import ItemDetailSheet from "@/components/inventory/item-detail-sheet"
 import type { InventoryItem } from "@/types"
+import { useMobile } from "@/components/mobile/hooks/use-mobile"
+import MobileManagerInventoryPage from "@/components/mobile/mobile-manager-inventory"
 
 const CATEGORIES = [
   { value: "all", label: "All" },
@@ -35,6 +37,9 @@ const categoryLabels: Record<string, string> = {
 }
 
 export default function ManagerInventoryPage() {
+  const isMobile = useMobile()
+  if (isMobile) return <MobileManagerInventoryPage />
+
   const [items, setItems] = useState<InventoryItem[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)

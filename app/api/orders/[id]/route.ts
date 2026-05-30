@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getSession } from '@/lib/auth/session';
 import { supabase } from '@/lib/supabase/client';
 import { getOrderById, updateOrderStatus, decrementMenuItemStock } from '@/lib/supabase/queries';
+import { createNotification } from '@/lib/supabase/notifications';
 import type { ApiResponse } from '@/types';
 
 export async function GET(
@@ -99,6 +100,21 @@ export async function PATCH(
 
     const updated = await updateOrderStatus(id, status, staff_id || session.user_id);
 
+    // Notify order owner about status change
+    if ((status === 'completed' || status === 'cancelled') && updated) {
+      const orderOwnerId = (updated as any)?.user_id;
+      const orderNum = (updated as any)?.order_number ?? id;
+      if (orderOwnerId) {
+        await createNotification({
+          user_id: orderOwnerId,
+          type: status === 'completed' ? 'order_confirmed' : 'order_cancelled',
+          title: status === 'completed' ? 'Order Confirmed' : 'Order Cancelled',
+          message: `Your order #${orderNum} has been ${status}`,
+          data: { order_id: id, order_number: orderNum },
+        });
+      }
+    }
+
     return NextResponse.json<ApiResponse>({ success: true, data: updated });
   } catch (error) {
     return NextResponse.json<ApiResponse>(
@@ -155,18 +171,48 @@ export async function POST(
       }
 
       // Update status to completed
-      const updated = await updateOrderStatus(id, 'completed', session.user_id);
+      const completed = await updateOrderStatus(id, 'completed', session.user_id);
+
+      // Notify order owner
+      if (completed) {
+        const ownerId = (completed as any)?.user_id;
+        const orderNum = (completed as any)?.order_number ?? id;
+        if (ownerId) {
+          await createNotification({
+            user_id: ownerId,
+            type: 'order_confirmed',
+            title: 'Order Confirmed',
+            message: `Your order #${orderNum} is ready!`,
+            data: { order_id: id, order_number: orderNum },
+          });
+        }
+      }
 
       return NextResponse.json<ApiResponse>(
-        { success: true, data: updated, message: 'Payment confirmed' },
+        { success: true, data: completed, message: 'Payment confirmed' },
         { status: 200 },
       );
     } else {
       // Decline — cancel the order
-      const updated = await updateOrderStatus(id, 'cancelled', session.user_id);
+      const cancelled = await updateOrderStatus(id, 'cancelled', session.user_id);
+
+      // Notify order owner
+      if (cancelled) {
+        const ownerId = (cancelled as any)?.user_id;
+        const orderNum = (cancelled as any)?.order_number ?? id;
+        if (ownerId) {
+          await createNotification({
+            user_id: ownerId,
+            type: 'order_cancelled',
+            title: 'Order Cancelled',
+            message: `Your order #${orderNum} has been declined`,
+            data: { order_id: id, order_number: orderNum },
+          });
+        }
+      }
 
       return NextResponse.json<ApiResponse>(
-        { success: true, data: updated, message: 'Order declined' },
+        { success: true, data: cancelled, message: 'Order declined' },
         { status: 200 },
       );
     }

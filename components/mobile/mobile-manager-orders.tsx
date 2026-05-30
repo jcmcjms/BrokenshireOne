@@ -1,35 +1,35 @@
 "use client"
-
 import { useEffect, useState, useCallback } from "react"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogClose } from "@/components/ui/dialog"
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs"
+import { Input } from "@/components/ui/input"
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog"
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Separator } from "@/components/ui/separator"
 import { toast } from "sonner"
-import { DatePicker } from "@/components/ui/date-picker"
-import { ListIcon, CaretRightIcon } from "@phosphor-icons/react"
+import { CalendarBlank, Clock } from "@phosphor-icons/react"
+import { DataCard } from "@/components/mobile/data-card"
+import { usePullToRefresh } from "@/components/mobile/hooks/use-pull-to-refresh"
 import { formatPrice } from "@/lib/utils"
 import type { Order } from "@/types"
-import { useMobile } from "@/components/mobile/hooks/use-mobile"
-import MobileManagerOrdersPage from "@/components/mobile/mobile-manager-orders"
 
 const statuses = ["all", "pending", "completed", "cancelled"] as const
 type StatusFilter = (typeof statuses)[number]
 
-const statusVariant: Record<string, "default" | "secondary" | "destructive" | "outline" | "ghost"> = {
+const statusVariant: Record<string, "default" | "secondary" | "destructive" | "outline"> = {
   pending: "secondary",
   completed: "default",
   cancelled: "destructive",
 }
 
-export default function ManagerOrdersPage() {
-  const isMobile = useMobile()
-  if (isMobile) return <MobileManagerOrdersPage />
+const cardVariant: Record<string, "default" | "destructive" | "success" | "warning"> = {
+  pending: "warning",
+  completed: "success",
+  cancelled: "destructive",
+}
 
+export default function MobileManagerOrdersPage() {
   const [orders, setOrders] = useState<Order[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -57,6 +57,12 @@ export default function ManagerOrdersPage() {
 
   useEffect(() => { fetchOrders() }, [fetchOrders])
 
+  const { refreshing, pullDistance } = usePullToRefresh({
+    onRefresh: fetchOrders,
+  })
+
+  const filtered = activeTab === "all" ? orders : orders.filter((o) => o.status === activeTab)
+
   const openDetail = (order: Order) => {
     setSelectedOrder(order)
     setDetailOpen(true)
@@ -82,8 +88,6 @@ export default function ManagerOrdersPage() {
     }
   }
 
-  const filtered = activeTab === "all" ? orders : orders.filter((o) => o.status === activeTab)
-
   if (error) {
     return (
       <div className="flex flex-col items-center justify-center gap-2 py-16">
@@ -95,85 +99,67 @@ export default function ManagerOrdersPage() {
   }
 
   return (
-    <div className="flex flex-col gap-6 p-6">
-      <div className="flex items-start justify-between">
-        <div>
-          <h1 className="font-heading text-sm font-medium">Orders Management</h1>
-          <p className="text-xs text-muted-foreground mt-0.5">View and manage all orders</p>
+    <div className="flex flex-col gap-3 p-4 pb-8">
+      {pullDistance > 0 && (
+        <div
+          className="flex items-center justify-center text-xs text-muted-foreground transition-all"
+          style={{ height: Math.min(pullDistance, 40) }}
+        >
+          {refreshing ? "Refreshing..." : "Pull to refresh"}
         </div>
-        <DatePicker value={selectedDate} onChange={setSelectedDate} />
+      )}
+      {refreshing && (
+        <div className="flex items-center justify-center py-2">
+          <span className="text-xs text-muted-foreground">Refreshing...</span>
+        </div>
+      )}
+
+      <div className="flex items-center gap-2">
+        <CalendarBlank className="size-4 text-muted-foreground shrink-0" />
+        <Input
+          type="date"
+          value={selectedDate}
+          onChange={(e) => setSelectedDate(e.target.value)}
+          className="h-8 text-xs"
+        />
       </div>
 
       <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as StatusFilter)}>
-        <TabsList variant="line">
+        <TabsList className="w-full">
           {statuses.map((s) => (
-            <TabsTrigger key={s} value={s} className="capitalize">{s}</TabsTrigger>
+            <TabsTrigger key={s} value={s} className="flex-1 text-xs capitalize">
+              {s}
+            </TabsTrigger>
           ))}
         </TabsList>
-        <TabsContent value={activeTab} className="mt-4">
-          <Card>
-            <CardHeader>
-              <CardTitle>
-                <ListIcon className="size-4 inline mr-1" />
-                {activeTab === "all" ? "All Orders" : `${activeTab.charAt(0).toUpperCase() + activeTab.slice(1)} Orders`}
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="p-0">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Order #</TableHead>
-                    <TableHead>Customer</TableHead>
-                    <TableHead>Items</TableHead>
-                    <TableHead>Total</TableHead>
-                    <TableHead>Payment</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead>Date</TableHead>
-                    <TableHead></TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {loading
-                    ? Array.from({ length: 6 }).map((_, i) => (
-                        <TableRow key={i}>
-                          {Array.from({ length: 8 }).map((_, j) => (
-                            <TableCell key={j}><Skeleton className="h-4 w-16" /></TableCell>
-                          ))}
-                        </TableRow>
-                      ))
-                    : filtered.map((order) => (
-                        <TableRow key={order.id} className="cursor-pointer" onClick={() => openDetail(order)}>
-                          <TableCell className="font-medium">{order.order_number}</TableCell>
-                          <TableCell>{order.user_name ?? "—"}</TableCell>
-                          <TableCell>{order.items?.length ?? "—"}</TableCell>
-                          <TableCell>{formatPrice(order.total)}</TableCell>
-                          <TableCell className="capitalize">{order.payment_method}</TableCell>
-                          <TableCell>
-                            <Badge variant={statusVariant[order.status]}>{order.status}</Badge>
-                          </TableCell>
-                          <TableCell className="text-muted-foreground">
-                            {new Date(order.created_at).toLocaleDateString()}
-                          </TableCell>
-                          <TableCell>
-                            <Button variant="ghost" size="icon-xs">
-                              <CaretRightIcon className="size-3" />
-                            </Button>
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                  {!loading && filtered.length === 0 && (
-                    <TableRow>
-                      <TableCell colSpan={8} className="text-center text-muted-foreground py-8">
-                        No orders found
-                      </TableCell>
-                    </TableRow>
-                  )}
-                </TableBody>
-              </Table>
-            </CardContent>
-          </Card>
-        </TabsContent>
       </Tabs>
+
+      <div className="flex flex-col gap-2">
+        {loading
+          ? Array.from({ length: 5 }).map((_, i) => (
+              <Skeleton key={i} className="h-16 w-full rounded-lg" />
+            ))
+          : filtered.map((order) => (
+              <DataCard
+                key={order.id}
+                title={order.order_number}
+                subtitle={order.user_name ?? "Walk-in"}
+                right={formatPrice(order.total)}
+                badge={<Badge variant={statusVariant[order.status]} className="text-[10px] px-1.5 py-0">{order.status}</Badge>}
+                variant={cardVariant[order.status]}
+                topLeft={
+                  <span className="flex items-center gap-1">
+                    <Clock className="size-3" />
+                    {new Date(order.created_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                  </span>
+                }
+                onClick={() => openDetail(order)}
+              />
+            ))}
+        {!loading && filtered.length === 0 && (
+          <p className="text-center text-xs text-muted-foreground py-8">No orders found</p>
+        )}
+      </div>
 
       <Dialog open={detailOpen} onOpenChange={setDetailOpen}>
         <DialogContent className="sm:max-w-md">
@@ -241,9 +227,7 @@ export default function ManagerOrdersPage() {
             </div>
           )}
           <DialogFooter>
-            <DialogClose asChild>
-              <Button variant="outline" size="sm">Close</Button>
-            </DialogClose>
+            <Button variant="outline" size="sm" onClick={() => setDetailOpen(false)}>Close</Button>
             {selectedOrder?.status === "pending" && (
               <Button size="sm" onClick={markCompleted} disabled={updating}>
                 {updating ? "Updating..." : "Mark Completed"}

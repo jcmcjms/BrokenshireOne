@@ -9,8 +9,13 @@ import { Skeleton } from "@/components/ui/skeleton"
 import { UsersIcon, ClipboardTextIcon, CurrencyDollarIcon, ShoppingCartIcon, GearIcon, UserListIcon } from "@phosphor-icons/react"
 import { cn, formatPrice } from "@/lib/utils"
 import type { DashboardStats, Order } from "@/types"
+import { useMobile } from "@/components/mobile/hooks/use-mobile"
+import MobileAdminDashboard from "@/components/mobile/mobile-admin-dashboard"
 
 export default function AdminDashboardPage() {
+  const isMobile = useMobile()
+  if (isMobile) return <MobileAdminDashboard />
+
   const [stats, setStats] = useState<DashboardStats | null>(null)
   const [recentOrders, setRecentOrders] = useState<Order[]>([])
   const [loading, setLoading] = useState(true)

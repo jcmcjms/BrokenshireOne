@@ -27,12 +27,17 @@ import { cn, formatPrice } from "@/lib/utils"
 import { BarcodeScanner } from "@/components/ui/barcode-scanner"
 import { QRCodeSVG } from "qrcode.react"
 import type { MenuItem, MenuCategory, User, ApiResponse } from "@/types"
+import { useMobile } from "@/components/mobile/hooks/use-mobile"
+import { MobileOrderPage } from "@/components/mobile/mobile-order-page"
 
 interface CartItem extends MenuItem {
   cartQuantity: number
 }
 
 export default function OrderPage() {
+  const isMobile = useMobile()
+  if (isMobile) return <MobileOrderPage />
+
   const router = useRouter()
   const [user, setUser] = useState<User | null>(null)
   const [items, setItems] = useState<MenuItem[]>([])

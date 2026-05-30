@@ -38,6 +38,8 @@ import {
 import PermissionDialog from "@/components/admin/permission-dialog"
 import { formatPrice } from "@/lib/utils"
 import type { User } from "@/types"
+import { useMobile } from "@/components/mobile/hooks/use-mobile"
+import MobileAdminUsersPage from "@/components/mobile/mobile-admin-users"
 
 interface Role {
   id: string
@@ -72,6 +74,9 @@ const roleBadgeVariant: Record<string, "default" | "secondary" | "outline" | "de
 }
 
 export default function AdminUsersPage() {
+  const isMobile = useMobile()
+  if (isMobile) return <MobileAdminUsersPage />
+
   const [users, setUsers] = useState<User[]>([])
   const [roles, setRoles] = useState<Role[]>([])
   const [loading, setLoading] = useState(true)

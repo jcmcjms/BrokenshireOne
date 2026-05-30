@@ -8,8 +8,13 @@ import { DatePicker } from "@/components/ui/date-picker"
 import { CurrencyDollarIcon, ClipboardTextIcon, ShoppingCartIcon, ChartBarIcon } from "@phosphor-icons/react"
 import { formatPrice } from "@/lib/utils"
 import type { DashboardStats } from "@/types"
+import { useMobile } from "@/components/mobile/hooks/use-mobile"
+import MobileManagerReportsPage from "@/components/mobile/mobile-manager-reports"
 
 export default function ManagerReportsPage() {
+  const isMobile = useMobile()
+  if (isMobile) return <MobileManagerReportsPage />
+
   const [stats, setStats] = useState<DashboardStats | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)

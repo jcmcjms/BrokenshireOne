@@ -16,6 +16,8 @@ import { CurrencyDollarIcon, PencilIcon, TrashIcon, PlusIcon, WalletIcon } from 
 import { cn, formatPrice } from "@/lib/utils"
 import { DEDUCTION_TYPES } from "@/types"
 import type { SalaryDeductionLimit, SalaryDeduction, DeductionType } from "@/types"
+import { useMobile } from "@/components/mobile/hooks/use-mobile"
+import MobileManagerSalaryPage from "@/components/mobile/mobile-manager-salary"
 
 type TabValue = "limits" | "deductions"
 
@@ -29,6 +31,9 @@ function monthName(m: number): string {
 }
 
 export default function ManagerSalaryPage() {
+  const isMobile = useMobile()
+  if (isMobile) return <MobileManagerSalaryPage />
+
   const { month: cMonth, year: cYear } = getCurrentMonthYear()
 
   // State
