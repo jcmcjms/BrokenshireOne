@@ -1,0 +1,72 @@
+name: Supabase Heartbeat
+
+on:
+  # ── Run every 6 hours ──────────────────────────────────────────────
+  schedule:
+    - cron: '0 */6 * * *'   # At minute 0, every 6 hours
+
+  # ── Manual trigger from GitHub UI ──────────────────────────────────
+  workflow_dispatch:
+
+  # ── Also runs when the heartbeat endpoint code changes ─────────────
+  push:
+    branches: [main, master]
+    paths:
+      - 'app/api/heartbeat/**'
+      - 'scripts/heartbeat.mjs'
+      - '.github/workflows/heartbeat.yml'
+
+jobs:
+  heartbeat:
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        # Two independent methods — if one fails the other still runs.
+        # The API route method hits your deployed endpoint (fast, no deps).
+        # The script method uses the repo directly (works even if not deployed).
+        method: [api, script]
+
+    steps:
+      # ── Common: Checkout ──────────────────────────────────────────
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # ── Method A: Call deployed API route ─────────────────────────
+      - name: 🔄 Heartbeat via deployed API
+        if: matrix.method == 'api'
+        env:
+          PRODUCTION_URL: ${{ secrets.PRODUCTION_URL }}
+        run: |
+          if [ -z "$PRODUCTION_URL" ]; then
+            echo "⚠️  PRODUCTION_URL secret not set — skipping API method."
+            echo "   Set it in GitHub repo Settings > Secrets and variables > Actions:"
+            echo "   PRODUCTION_URL = https://your-app.vercel.app"
+            exit 0
+          fi
+          echo "Pinging $PRODUCTION_URL/api/heartbeat ..."
+          response=$(curl -s -o /dev/null -w "%{http_code}" --max-time 15 \
+            "$PRODUCTION_URL/api/heartbeat")
+          if [ "$response" = "200" ]; then
+            echo "✅ Heartbeat API responded HTTP $response"
+          else
+            echo "❌ Heartbeat API responded HTTP $response"
+            exit 1
+          fi
+
+      # ── Method B: Run the script directly ──────────────────────────
+      - name: 🔄 Heartbeat via local script
+        if: matrix.method == 'script'
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: |
+          if [ -z "$NEXT_PUBLIC_SUPABASE_URL" ] || [ -z "$SUPABASE_SERVICE_ROLE_KEY" ]; then
+            echo "⚠️  Supabase secrets not set — skipping script method."
+            echo "   Set them in GitHub repo Settings > Secrets and variables > Actions:"
+            echo "   - NEXT_PUBLIC_SUPABASE_URL"
+            echo "   - SUPABASE_SERVICE_ROLE_KEY"
+            exit 0
+          fi
+          npm install --silent @supabase/supabase-js
+          node scripts/heartbeat.mjs
