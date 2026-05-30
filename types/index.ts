@@ -129,7 +129,7 @@ export interface UserPermissionOverride {
   user_id: string;
   permission_id: string;
   code: string;
-  grant: boolean;
+  is_granted: boolean;
 }
 
 export interface UserPermissionsResponse {

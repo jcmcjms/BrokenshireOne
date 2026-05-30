@@ -60,7 +60,7 @@ export async function GET(
     for (const ov of overrides) {
       const code = (ov as any).permissions?.code;
       if (code) {
-        overrideMap[code] = ov.grant;
+        overrideMap[code] = ov.is_granted;
       }
     }
 

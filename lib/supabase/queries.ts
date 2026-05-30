@@ -461,7 +461,7 @@ export async function setUserPermissionOverrides(
         if ((existing as any)?.data) {
           await supabase
             .from('user_permissions')
-            .update({ grant: value } as any)
+            .update({ is_granted: value } as any)
             .eq('user_id', userId)
             .eq('permission_id', permissionId);
         } else {
@@ -470,7 +470,7 @@ export async function setUserPermissionOverrides(
             .insert({
               user_id: userId,
               permission_id: permissionId,
-              grant: value,
+              is_granted: value,
             } as any);
         }
       }
@@ -517,7 +517,7 @@ export async function getEffectivePermissions(userId: string): Promise<string[]>
     for (const up of (userPerms as unknown as DbUserPermission[]) ?? []) {
       const code = (up as any).permissions?.code;
       if (code) {
-        if (up.grant) {
+        if (up.is_granted) {
           rolePermissions.add(code);
         } else {
           rolePermissions.delete(code);
