@@ -2,7 +2,7 @@
 
 import { useState, useRef, useCallback, useEffect } from "react"
 import { Button } from "@/components/ui/button"
-import { ImageIcon, SpinnerIcon, TrashIcon } from "@phosphor-icons/react"
+import { ImageIcon, SpinnerIcon, TrashIcon, Camera } from "@phosphor-icons/react"
 import { cn } from "@/lib/utils"
 
 interface ImageUploaderProps {
@@ -15,7 +15,8 @@ interface ImageUploaderProps {
 }
 
 export function ImageUploader({ value, onChange, disabled = false }: ImageUploaderProps) {
-  const inputRef = useRef<HTMLInputElement>(null)
+  const galleryInputRef = useRef<HTMLInputElement>(null)
+  const cameraInputRef = useRef<HTMLInputElement>(null)
   const previewRef = useRef<string | null>(null)
   const [uploading, setUploading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -40,10 +41,16 @@ export function ImageUploader({ value, onChange, disabled = false }: ImageUpload
     }
   }, [])
 
-  const handleClick = useCallback(() => {
+  const triggerGallery = useCallback(() => {
     if (disabled || uploading) return
     setError(null)
-    inputRef.current?.click()
+    galleryInputRef.current?.click()
+  }, [disabled, uploading])
+
+  const triggerCamera = useCallback(() => {
+    if (disabled || uploading) return
+    setError(null)
+    cameraInputRef.current?.click()
   }, [disabled, uploading])
 
   const handleRemove = useCallback(
@@ -53,8 +60,9 @@ export function ImageUploader({ value, onChange, disabled = false }: ImageUpload
       updatePreview(null)
       onChange(null)
       setError(null)
-      // Reset the file input so the same file can be re-selected
-      if (inputRef.current) inputRef.current.value = ""
+      // Reset the file inputs so the same file can be re-selected
+      if (galleryInputRef.current) galleryInputRef.current.value = ""
+      if (cameraInputRef.current) cameraInputRef.current.value = ""
     },
     [disabled, uploading, updatePreview, onChange],
   )
@@ -70,7 +78,7 @@ export function ImageUploader({ value, onChange, disabled = false }: ImageUpload
       const allowedTypes = ["image/jpeg", "image/png", "image/webp", "image/gif"]
       if (!allowedTypes.includes(file.type)) {
         setError("Invalid file type. Please upload JPEG, PNG, WebP, or GIF.")
-        if (inputRef.current) inputRef.current.value = ""
+        if (e.target) e.target.value = ""
         return
       }
 
@@ -78,7 +86,7 @@ export function ImageUploader({ value, onChange, disabled = false }: ImageUpload
       const maxSize = 5 * 1024 * 1024 // 5,242,880 bytes
       if (file.size > maxSize) {
         setError("File is too large. Maximum size is 5 MB.")
-        if (inputRef.current) inputRef.current.value = ""
+        if (e.target) e.target.value = ""
         return
       }
 
@@ -108,7 +116,8 @@ export function ImageUploader({ value, onChange, disabled = false }: ImageUpload
         const uploadedUrl: string | undefined = result.data?.url
         onChange(uploadedUrl ?? null)
         updatePreview(null)
-        if (inputRef.current) inputRef.current.value = ""
+        if (galleryInputRef.current) galleryInputRef.current.value = ""
+        if (cameraInputRef.current) cameraInputRef.current.value = ""
       } catch (err) {
         // Revert local preview on error
         updatePreview(null)
@@ -126,19 +135,14 @@ export function ImageUploader({ value, onChange, disabled = false }: ImageUpload
   return (
     <div className="flex flex-col gap-1.5">
       {/* Drop zone / preview area */}
-      <button
-        type="button"
-        onClick={handleClick}
-        disabled={disabled || uploading}
+      <div
         className={cn(
-          "group relative flex items-center justify-center w-full border-2 border-dashed rounded-sm transition-colors",
-          "focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring/50",
+          "group relative flex flex-col items-center justify-center w-full border-2 border-dashed rounded-sm transition-colors",
+          "focus-within:outline-none focus-within:ring-1 focus-within:ring-ring/50",
           error ? "border-destructive/50" : "border-border hover:border-muted-foreground/30",
           showPreview ? "h-40" : "h-32",
-          disabled && "opacity-50 cursor-not-allowed",
-          uploading && "cursor-wait",
+          "cursor-default",
         )}
-        aria-label={uploading ? "Uploading image..." : showPreview ? "Change image" : "Upload image"}
       >
         {uploading ? (
           /* Uploading state */
@@ -161,7 +165,7 @@ export function ImageUploader({ value, onChange, disabled = false }: ImageUpload
                 variant="secondary"
                 size="sm"
                 className="opacity-0 group-hover:opacity-100 transition-opacity pointer-events-auto"
-                onClick={handleClick}
+                onClick={triggerGallery}
                 disabled={disabled}
               >
                 Change
@@ -183,17 +187,56 @@ export function ImageUploader({ value, onChange, disabled = false }: ImageUpload
           /* Empty state */
           <div className="flex flex-col items-center gap-1.5">
             <ImageIcon className="size-7 text-muted-foreground/40" />
-            <span className="text-xs text-muted-foreground">Click to upload</span>
+            <span className="text-xs text-muted-foreground">Upload Image</span>
             <span className="text-[10px] text-muted-foreground/50">PNG, JPG, WebP up to 5MB</span>
           </div>
         )}
-      </button>
+      </div>
 
-      {/* Hidden file input */}
+      {/* Source choice buttons — shown when no image is set */}
+      {!showPreview && !uploading && (
+        <div className="flex items-center gap-2">
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={triggerGallery}
+            disabled={disabled || uploading}
+            className="flex-1 gap-1.5 h-8 text-xs"
+          >
+            <ImageIcon className="size-3.5" />
+            Gallery
+          </Button>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={triggerCamera}
+            disabled={disabled || uploading}
+            className="flex-1 gap-1.5 h-8 text-xs"
+          >
+            <Camera className="size-3.5" />
+            Camera
+          </Button>
+        </div>
+      )}
+
+      {/* Hidden file input — gallery (no capture, lets OS choose source) */}
       <input
-        ref={inputRef}
+        ref={galleryInputRef}
         type="file"
         accept="image/jpeg,image/png,image/webp,image/gif"
+        className="hidden"
+        onChange={handleFileChange}
+        disabled={disabled || uploading}
+      />
+
+      {/* Hidden file input — camera (capture forces camera on mobile) */}
+      <input
+        ref={cameraInputRef}
+        type="file"
+        accept="image/jpeg,image/png,image/webp,image/gif"
+        capture="environment"
         className="hidden"
         onChange={handleFileChange}
         disabled={disabled || uploading}
