@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getSession } from '@/lib/auth/session';
 import { supabase } from '@/lib/supabase/client';
+import { logAdminAction, AuditActions } from '@/lib/audit';
 import type { ApiResponse } from '@/types';
 
 export async function PUT(
@@ -61,6 +62,10 @@ export async function PUT(
       throw error;
     }
 
+    await logAdminAction(session, AuditActions.MENU_UPDATE, 'menu_item', id, {
+      updated_fields: Object.keys(updates),
+    }).catch(() => {});
+
     return NextResponse.json<ApiResponse>({ success: true, data });
   } catch (error) {
     return NextResponse.json<ApiResponse>(
@@ -111,6 +116,8 @@ export async function DELETE(
       }
       throw error;
     }
+
+    await logAdminAction(session, AuditActions.MENU_DELETE, 'menu_item', id).catch(() => {});
 
     return NextResponse.json<ApiResponse>({
       success: true,

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getSession } from '@/lib/auth/session';
 import { supabase } from '@/lib/supabase/client';
+import { logAdminAction, AuditActions } from '@/lib/audit';
 import type { ApiResponse } from '@/types';
 
 export async function GET(request: NextRequest) {
@@ -91,6 +92,13 @@ export async function POST(request: NextRequest) {
       .single();
 
     if (error) throw error;
+
+    await logAdminAction(session, AuditActions.INVENTORY_ADJUST, 'inventory_item', data?.id ?? null, {
+      name,
+      category,
+      quantity: quantity ?? 0,
+      unit,
+    }).catch(() => {});
 
     return NextResponse.json<ApiResponse>(
       { success: true, data },

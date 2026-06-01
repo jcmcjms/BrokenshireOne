@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getSession } from '@/lib/auth/session';
 import { supabase } from '@/lib/supabase/client';
 import { updateUser, deactivateUser } from '@/lib/supabase/queries';
+import { bumpUserSessionVersion } from '@/lib/supabase/queries';
+import { logAdminAction, AuditActions } from '@/lib/audit';
 import type { ApiResponse } from '@/types';
 
 export async function GET(
@@ -97,6 +99,15 @@ export async function PUT(
 
     const updated = await updateUser(id, updates);
 
+    await logAdminAction(session, AuditActions.USER_UPDATE, 'user', id, {
+      changes: Object.keys(body),
+      role_changed: body.role_id !== undefined,
+    });
+
+    if (body.role_id !== undefined) {
+      await bumpUserSessionVersion(id);
+    }
+
     const { password_hash, roles, ...safeUser } = updated as any;
     const roleName = roles?.name ?? 'student';
 
@@ -144,6 +155,8 @@ export async function DELETE(
     }
 
     await deactivateUser(id);
+
+    await logAdminAction(session, AuditActions.USER_DEACTIVATE, 'user', id);
 
     return NextResponse.json<ApiResponse>({
       success: true,

@@ -211,6 +211,7 @@ export interface JwtPayload {
   role: Role;
   role_id: string;
   permissions: string[];
+  session_version?: number;
   iat?: number;
   exp?: number;
 }

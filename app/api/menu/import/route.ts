@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getSession } from '@/lib/auth/session';
 import { supabase } from '@/lib/supabase/client';
+import { logAdminAction, AuditActions } from '@/lib/audit';
 import * as XLSX from 'xlsx';
 
 export async function POST(request: NextRequest) {
@@ -214,6 +215,13 @@ export async function POST(request: NextRequest) {
         results.errors.push({ row: rowNum, field: 'general', reason: err?.message ?? 'Unknown error' });
       }
     }
+
+    await logAdminAction(session, AuditActions.MENU_CREATE, 'menu_item', null, {
+      mode,
+      created: results.created,
+      updated: results.updated,
+      errors: results.errors.length,
+    }).catch(() => {});
 
     return NextResponse.json(results);
   } catch (error) {

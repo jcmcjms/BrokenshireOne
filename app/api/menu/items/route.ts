@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getSession } from '@/lib/auth/session';
 import { supabase } from '@/lib/supabase/client';
 import { getMenuItems } from '@/lib/supabase/queries';
+import { logAdminAction, AuditActions } from '@/lib/audit';
 import type { ApiResponse } from '@/types';
 
 export async function GET(request: NextRequest) {
@@ -113,6 +114,12 @@ export async function POST(request: NextRequest) {
       .single();
 
     if (error) throw error;
+
+    await logAdminAction(session, AuditActions.MENU_CREATE, 'menu_item', data?.id ?? null, {
+      name,
+      category_id,
+      price,
+    }).catch(() => {});
 
     return NextResponse.json<ApiResponse>(
       { success: true, data },

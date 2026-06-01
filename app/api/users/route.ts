@@ -3,14 +3,17 @@ import { getSession } from '@/lib/auth/session';
 import { supabase } from '@/lib/supabase/client';
 import { createUser } from '@/lib/supabase/queries';
 import { hashPassword } from '@/lib/auth/password';
+import { logAdminAction, AuditActions } from '@/lib/audit';
 import type { ApiResponse } from '@/types';
 import type { DbUser } from '@/types/database';
+import { randomBytes } from 'crypto';
 
 function generatePassword(length = 12): string {
   const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789!@#$';
+  const bytes = randomBytes(length);
   let password = '';
   for (let i = 0; i < length; i++) {
-    password += chars.charAt(Math.floor(Math.random() * chars.length));
+    password += chars[bytes[i] % chars.length];
   }
   return password;
 }
@@ -32,7 +35,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Admin & manager can list all users. Staff can search users (for customer lookup at checkout).
-    if (session.role !== 'admin' && session.role !== 'manager' && session.role !== 'staff') {
+    if (!session.permissions.includes('users.view') && session.role !== 'admin') {
       return NextResponse.json<ApiResponse>(
         { success: false, error: 'Forbidden' },
         { status: 403 },
@@ -173,6 +176,13 @@ export async function POST(request: NextRequest) {
 
     const { password_hash, roles, ...safeUser } = newUser as any;
     const roleName2 = roles?.name ?? 'student';
+
+    await logAdminAction(session, AuditActions.USER_CREATE, 'user', newUser?.id ?? null, {
+      name: body.name,
+      email: body.email.toLowerCase(),
+      role: roleName2,
+      employee_id: employeeId,
+    });
 
     // Return credentials so the admin can share them with the user
     return NextResponse.json<ApiResponse>({

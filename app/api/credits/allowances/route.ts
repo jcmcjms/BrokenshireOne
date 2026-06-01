@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getSession } from '@/lib/auth/session';
 import { supabase } from '@/lib/supabase/client';
+import { logAdminAction, AuditActions } from '@/lib/audit';
 import type { ApiResponse } from '@/types';
 
 export async function POST(request: NextRequest) {
@@ -72,6 +73,14 @@ export async function POST(request: NextRequest) {
       if (error) throw error;
       result = data;
     }
+
+    await logAdminAction(session, AuditActions.CREDIT_ADJUST, 'credit_allowance', result?.id ?? null, {
+      user_id,
+      month,
+      year,
+      limit_amount,
+      was_update: !!existing,
+    }).catch(() => {});
 
     return NextResponse.json<ApiResponse>(
       { success: true, data: result },

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getSession } from '@/lib/auth/session';
 import { supabase } from '@/lib/supabase/client';
 import { getEffectivePermissions, getUserPermissionOverrides, setUserPermissionOverrides, getAllPermissions } from '@/lib/supabase/queries';
+import { logAdminAction, AuditActions } from '@/lib/audit';
 import type { ApiResponse, UserPermissionsResponse } from '@/types';
 import type { DbUser } from '@/types/database';
 
@@ -116,6 +117,10 @@ export async function PUT(
     }
 
     await setUserPermissionOverrides(id, overrides);
+
+    await logAdminAction(session, AuditActions.PERMISSION_OVERRIDE, 'user', id, {
+      overrides,
+    }).catch(() => {});
 
     // Return updated effective permissions
     const effectivePermissions = await getEffectivePermissions(id);

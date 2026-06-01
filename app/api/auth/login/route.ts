@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { supabase } from '@/lib/supabase/client';
 import { getUserByEmployeeId, getEffectivePermissions } from '@/lib/supabase/queries';
 import { verifyPassword } from '@/lib/auth/password';
 import { setSession } from '@/lib/auth/session';
@@ -42,12 +43,21 @@ export async function POST(request: NextRequest) {
     const roleName = (user as any).roles?.name ?? 'student';
     const permissions = await getEffectivePermissions(user.id);
 
+    // Fetch user's session_version for JWT invalidation
+    const { data: userVer } = await supabase
+      .from('users')
+      .select('session_version')
+      .eq('id', user.id)
+      .single();
+    const sessionVersion = (userVer as any)?.session_version ?? 0;
+
     await setSession({
       user_id: user.id,
       email: user.email,
       role: roleName,
       role_id: user.role_id,
       permissions,
+      session_version: sessionVersion,
     });
 
     const { password_hash, roles, ...safeUser } = user as any;

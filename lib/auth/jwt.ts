@@ -1,7 +1,14 @@
 import jwt from 'jsonwebtoken';
 import { JwtPayload } from '@/types';
 
-const JWT_SECRET = process.env.JWT_SECRET || 'your-super-secret-jwt-key-change-in-production';
+const rawSecret = process.env.JWT_SECRET;
+if (!rawSecret) {
+  throw new Error(
+    'JWT_SECRET environment variable is required but not set. ' +
+    'Set it in .env.local or your Vercel environment variables.'
+  );
+}
+const JWT_SECRET: string = rawSecret;
 const JWT_EXPIRES_IN = '24h';
 
 export function signToken(payload: Omit<JwtPayload, 'iat' | 'exp'>): string {

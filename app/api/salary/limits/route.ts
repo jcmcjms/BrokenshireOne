@@ -5,6 +5,7 @@ import {
   upsertSalaryDeductionLimit,
   getFacultyAndStaffUsers,
 } from '@/lib/supabase/queries';
+import { logAdminAction, AuditActions } from '@/lib/audit';
 import type { ApiResponse } from '@/types';
 
 function getCurrentMonthYear() {
@@ -106,6 +107,13 @@ export async function POST(request: NextRequest) {
     const targetYear = year || getCurrentMonthYear().year;
 
     const data = await upsertSalaryDeductionLimit(user_id, targetMonth, targetYear, max_deduction_limit);
+
+    await logAdminAction(session, AuditActions.SALARY_DEDUCTION, 'salary_deduction_limit', data?.id ?? null, {
+      user_id,
+      month: targetMonth,
+      year: targetYear,
+      max_deduction_limit,
+    }).catch(() => {});
 
     return NextResponse.json<ApiResponse>(
       { success: true, data },

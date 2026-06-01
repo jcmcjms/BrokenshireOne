@@ -403,6 +403,26 @@ export async function deactivateUser(id: string): Promise<void> {
   if (error) throw error;
 }
 
+export async function bumpUserSessionVersion(userId: string): Promise<void> {
+  const { data: user } = await supabase
+    .from('users')
+    .select('session_version')
+    .eq('id', userId)
+    .single();
+
+  if (!user) return;
+
+  const currentVersion = (user as any).session_version ?? 0;
+  const { error } = await supabase
+    .from('users')
+    .update({ session_version: currentVersion + 1 } as any)
+    .eq('id', userId);
+
+  if (error) {
+    console.error('[queries] bumpUserSessionVersion error:', error?.message || error);
+  }
+}
+
 // ============================================================================
 // Permission Override Queries
 // ============================================================================
@@ -490,6 +510,29 @@ export async function setUserPermissionOverrides(
   }
 }
 
+/**
+ * Walk the role inheritance chain to collect all ancestor role IDs.
+ * Uses parent_role_id to climb the hierarchy (student → faculty → staff → manager → admin).
+ */
+async function getRoleInheritanceChain(roleId: string): Promise<string[]> {
+  const chain: string[] = [];
+  let currentId: string | null = roleId;
+
+  while (currentId) {
+    chain.push(currentId);
+    const { data: roleRow } = await supabase
+      .from('roles')
+      .select('parent_role_id')
+      .eq('id', currentId)
+      .single();
+
+    if (!roleRow) break;
+    currentId = (roleRow as any)?.parent_role_id ?? null;
+  }
+
+  return chain;
+}
+
 export async function getEffectivePermissions(userId: string): Promise<string[]> {
   // 1. Get user's role
   const { data: user, error: userError } = await supabase
@@ -502,11 +545,16 @@ export async function getEffectivePermissions(userId: string): Promise<string[]>
 
   const roleId = (user as any).role_id;
 
-  // 2. Get role-based permissions
+  // 2. Walk inheritance chain to get all inherited role IDs
+  const roleIds = await getRoleInheritanceChain(roleId);
+
+  if (roleIds.length === 0) return [];
+
+  // 3. Get role-based permissions for all roles in the chain
   const { data: rolePerms, error: roleError } = await supabase
     .from('role_permissions')
     .select('permissions!inner(code)')
-    .eq('role_id', roleId);
+    .in('role_id', roleIds);
 
   if (roleError) return [];
 
@@ -516,7 +564,7 @@ export async function getEffectivePermissions(userId: string): Promise<string[]>
       .filter(Boolean),
   );
 
-  // 3. Get user-level overrides
+  // 4. Get user-level overrides (applied on top of inherited permissions)
   const { data: userPerms, error: userPermError } = await supabase
     .from('user_permissions')
     .select('*, permissions!inner(code)')

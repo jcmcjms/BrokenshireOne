@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getSession } from '@/lib/auth/session';
 import { getSalaryDeductions, createSalaryDeduction, deleteSalaryDeduction } from '@/lib/supabase/queries';
+import { logAdminAction, AuditActions } from '@/lib/audit';
 import type { ApiResponse } from '@/types';
 
 function getCurrentMonthYear() {
@@ -93,6 +94,15 @@ export async function POST(request: NextRequest) {
       created_by: session.user_id,
     });
 
+    await logAdminAction(session, AuditActions.SALARY_DEDUCTION, 'salary_deduction', data?.id ?? null, {
+      user_id,
+      amount,
+      deduction_type,
+      reason: reason ?? null,
+      month: targetMonth,
+      year: targetYear,
+    }).catch(() => {});
+
     return NextResponse.json<ApiResponse>(
       { success: true, data },
       { status: 201 },
@@ -133,6 +143,9 @@ export async function DELETE(request: NextRequest) {
     }
 
     const data = await deleteSalaryDeduction(id);
+
+    await logAdminAction(session, AuditActions.SALARY_DEDUCTION, 'salary_deduction', id).catch(() => {});
+
     return NextResponse.json<ApiResponse>({ success: true, data });
   } catch (error) {
     return NextResponse.json<ApiResponse>(
