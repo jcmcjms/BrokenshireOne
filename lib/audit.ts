@@ -29,6 +29,20 @@ export const AuditActions = {
   MENU_UPDATE: 'menu.update',
   MENU_DELETE: 'menu.delete',
   INVENTORY_ADJUST: 'inventory.adjust',
+
+  // Library
+  LIBRARY_BOOK_CREATE: 'library.book.create',
+  LIBRARY_BOOK_UPDATE: 'library.book.update',
+  LIBRARY_BOOK_DELETE: 'library.book.delete',
+  LIBRARY_BORROW: 'library.borrow',
+  LIBRARY_RETURN: 'library.return',
+  LIBRARY_RENEW: 'library.renew',
+  LIBRARY_RESERVE: 'library.reserve',
+  LIBRARY_CANCEL_RESERVATION: 'library.cancel_reservation',
+  LIBRARY_FINE_PAY: 'library.fine.pay',
+  LIBRARY_FINE_WAIVE: 'library.fine.waive',
+  LIBRARY_MEMBER_CREATE: 'library.member.create',
+  LIBRARY_MEMBER_UPDATE: 'library.member.update',
 } as const;
 
 export type AuditAction = (typeof AuditActions)[keyof typeof AuditActions];

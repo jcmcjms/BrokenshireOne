@@ -1,121 +1,61 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getSession } from '@/lib/auth/session';
-import { supabase } from '@/lib/supabase/client';
+import { apiHandler } from '@/lib/api/api-handler';
+import { db } from '@/lib/supabase/helpers';
 import { logAdminAction, AuditActions } from '@/lib/audit';
+import { notFoundResponse, badRequestResponse, isNotFoundError } from '@/lib/api/utils';
 import type { ApiResponse } from '@/types';
 
-export async function PUT(
-  request: NextRequest,
-  { params }: { params: Promise<{ id: string }> },
-) {
-  try {
-    const session = await getSession();
-    if (!session) {
-      return NextResponse.json<ApiResponse>(
-        { success: false, error: 'Not authenticated' },
-        { status: 401 },
-      );
-    }
+export const PUT = apiHandler(async (request: NextRequest, params, session) => {
+  const { id } = params;
+  const { name, sort_order, active } = await request.json();
+  const updates: Record<string, unknown> = {};
 
-    if (!session.permissions.includes('menu.manage')) {
-      return NextResponse.json<ApiResponse>(
-        { success: false, error: 'Forbidden' },
-        { status: 403 },
-      );
-    }
+  if (name !== undefined) updates.name = name;
+  if (sort_order !== undefined) updates.sort_order = sort_order;
+  if (active !== undefined) updates.active = active;
 
-    const { id } = await params;
-    const { name, sort_order, active } = await request.json();
-    const updates: Record<string, unknown> = {};
-
-    if (name !== undefined) updates.name = name;
-    if (sort_order !== undefined) updates.sort_order = sort_order;
-    if (active !== undefined) updates.active = active;
-
-    if (Object.keys(updates).length === 0) {
-      return NextResponse.json<ApiResponse>(
-        { success: false, error: 'No fields to update' },
-        { status: 400 },
-      );
-    }
-
-    const db = supabase.from('menu_categories') as any;
-    const { data, error } = await db
-      .update(updates)
-      .eq('id', id)
-      .select()
-      .single();
-
-    if (error) {
-      if (error.code === 'PGRST116') {
-        return NextResponse.json<ApiResponse>(
-          { success: false, error: 'Category not found' },
-          { status: 404 },
-        );
-      }
-      throw error;
-    }
-
-    await logAdminAction(session, AuditActions.MENU_UPDATE, 'menu_category', id, {
-      updated_fields: Object.keys(updates),
-    }).catch(() => {});
-
-    return NextResponse.json<ApiResponse>({ success: true, data });
-  } catch (error) {
-    return NextResponse.json<ApiResponse>(
-      { success: false, error: 'Failed to update category' },
-      { status: 500 },
-    );
+  if (Object.keys(updates).length === 0) {
+    return badRequestResponse('No fields to update');
   }
-}
 
-export async function DELETE(
-  _request: NextRequest,
-  { params }: { params: Promise<{ id: string }> },
-) {
-  try {
-    const session = await getSession();
-    if (!session) {
-      return NextResponse.json<ApiResponse>(
-        { success: false, error: 'Not authenticated' },
-        { status: 401 },
-      );
+  const { data, error } = await db('menu_categories')
+    .update(updates)
+    .eq('id', id)
+    .select()
+    .single();
+
+  if (error) {
+    if (isNotFoundError(error)) {
+      return notFoundResponse('Category');
     }
-
-    if (!session.permissions.includes('menu.manage')) {
-      return NextResponse.json<ApiResponse>(
-        { success: false, error: 'Forbidden' },
-        { status: 403 },
-      );
-    }
-
-    const { id } = await params;
-
-    const dbDel = supabase.from('menu_categories') as any;
-    const { error } = await dbDel
-      .delete()
-      .eq('id', id);
-
-    if (error) {
-      if (error.code === 'PGRST116') {
-        return NextResponse.json<ApiResponse>(
-          { success: false, error: 'Category not found' },
-          { status: 404 },
-        );
-      }
-      throw error;
-    }
-
-    await logAdminAction(session, AuditActions.MENU_DELETE, 'menu_category', id).catch(() => {});
-
-    return NextResponse.json<ApiResponse>({
-      success: true,
-      message: 'Category deleted',
-    });
-  } catch (error) {
-    return NextResponse.json<ApiResponse>(
-      { success: false, error: 'Failed to delete category' },
-      { status: 500 },
-    );
+    throw error;
   }
-}
+
+  logAdminAction(session, AuditActions.MENU_UPDATE, 'menu_category', id, {
+    updated_fields: Object.keys(updates),
+  });
+
+  return NextResponse.json<ApiResponse>({ success: true, data });
+}, { permissions: ['menu.manage'] });
+
+export const DELETE = apiHandler(async (_request: NextRequest, params, session) => {
+  const { id } = params;
+
+  const { error } = await db('menu_categories')
+    .delete()
+    .eq('id', id);
+
+  if (error) {
+    if (isNotFoundError(error)) {
+      return notFoundResponse('Category');
+    }
+    throw error;
+  }
+
+  logAdminAction(session, AuditActions.MENU_DELETE, 'menu_category', id);
+
+  return NextResponse.json<ApiResponse>({
+    success: true,
+    message: 'Category deleted',
+  });
+}, { permissions: ['menu.manage'] });

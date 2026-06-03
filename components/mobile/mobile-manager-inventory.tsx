@@ -11,6 +11,7 @@ import { Skeleton } from "@/components/ui/skeleton"
 import { Separator } from "@/components/ui/separator"
 import { toast } from "sonner"
 import { Plus, Package } from "@phosphor-icons/react"
+import AddItemDialog from "@/components/inventory/add-item-dialog"
 import { DataCard } from "@/components/mobile/data-card"
 import { usePullToRefresh } from "@/components/mobile/hooks/use-pull-to-refresh"
 import type { InventoryItem } from "@/types"
@@ -215,6 +216,7 @@ export default function MobileManagerInventoryPage() {
         open={addDialogOpen}
         onOpenChange={setAddDialogOpen}
         onSaved={fetchData}
+        editingItem={null}
       />
 
       {/* Detail Dialog */}
@@ -307,111 +309,4 @@ export default function MobileManagerInventoryPage() {
   )
 }
 
-function AddItemDialog({ open, onOpenChange, onSaved }: { open: boolean; onOpenChange: (v: boolean) => void; onSaved: () => void }) {
-  const [name, setName] = useState("")
-  const [category, setCategory] = useState("produce")
-  const [quantity, setQuantity] = useState("")
-  const [unit, setUnit] = useState("")
-  const [minStock, setMinStock] = useState("")
-  const [unitCost, setUnitCost] = useState("")
-  const [saving, setSaving] = useState(false)
 
-  const resetForm = () => {
-    setName("")
-    setCategory("produce")
-    setQuantity("")
-    setUnit("")
-    setMinStock("")
-    setUnitCost("")
-  }
-
-  const handleSubmit = async () => {
-    if (!name || !quantity || !unit) {
-      toast.error("Name, quantity, and unit are required")
-      return
-    }
-    setSaving(true)
-    try {
-      const body: Record<string, unknown> = {
-        name,
-        category,
-        quantity: Number.parseInt(quantity, 10),
-        unit,
-        min_stock_level: minStock ? Number.parseInt(minStock, 10) : 0,
-      }
-      if (unitCost) body.unit_cost = Number.parseFloat(unitCost)
-      const res = await fetch("/api/inventory/items", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(body),
-      })
-      if (!res.ok) throw new Error("Failed to add item")
-      toast.success("Item added")
-      resetForm()
-      onOpenChange(false)
-      onSaved()
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Failed to add item")
-    } finally {
-      setSaving(false)
-    }
-  }
-
-  const inputClass = "h-9 text-xs"
-
-  return (
-    <Dialog open={open} onOpenChange={(v) => { if (!v) resetForm(); onOpenChange(v) }}>
-      <DialogContent className="max-w-sm">
-        <DialogHeader>
-          <DialogTitle className="text-sm">Add Inventory Item</DialogTitle>
-        </DialogHeader>
-        <div className="space-y-3 text-xs">
-          <div>
-            <label className="text-muted-foreground mb-1 block">Name *</label>
-            <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="Item name" className={inputClass} />
-          </div>
-          <div>
-            <label className="text-muted-foreground mb-1 block">Category</label>
-            <select
-              value={category}
-              onChange={(e) => setCategory(e.target.value)}
-              className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-xs ring-offset-background"
-            >
-              {CATEGORIES.filter((c) => c.value !== "all").map((c) => (
-                <option key={c.value} value={c.value}>{c.label}</option>
-              ))}
-            </select>
-          </div>
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="text-muted-foreground mb-1 block">Quantity *</label>
-              <Input type="number" value={quantity} onChange={(e) => setQuantity(e.target.value)} placeholder="0" className={inputClass} />
-            </div>
-            <div>
-              <label className="text-muted-foreground mb-1 block">Unit *</label>
-              <Input value={unit} onChange={(e) => setUnit(e.target.value)} placeholder="kg, pcs, L" className={inputClass} />
-            </div>
-          </div>
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="text-muted-foreground mb-1 block">Min Stock</label>
-              <Input type="number" value={minStock} onChange={(e) => setMinStock(e.target.value)} placeholder="0" className={inputClass} />
-            </div>
-            <div>
-              <label className="text-muted-foreground mb-1 block">Unit Cost</label>
-              <Input type="number" step="0.01" value={unitCost} onChange={(e) => setUnitCost(e.target.value)} placeholder="0.00" className={inputClass} />
-            </div>
-          </div>
-          <div className="flex gap-2 pt-1">
-            <Button size="sm" className="flex-1" onClick={handleSubmit} disabled={saving}>
-              {saving ? "Saving..." : "Add Item"}
-            </Button>
-            <Button size="sm" variant="outline" className="flex-1" onClick={() => onOpenChange(false)}>
-              Cancel
-            </Button>
-          </div>
-        </div>
-      </DialogContent>
-    </Dialog>
-  )
-}

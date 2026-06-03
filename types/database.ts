@@ -177,3 +177,76 @@ export interface DbSalaryDeduction {
   users?: { name: string } | DbUser;
   creator?: { name: string } | DbUser;
 }
+
+// ---------------------------------------------------------------------------
+// Library
+// ---------------------------------------------------------------------------
+
+export interface DbLibraryBook {
+  id: string;
+  title: string;
+  author: string;
+  isbn: string | null;
+  publisher: string | null;
+  published_year: number | null;
+  category: string;
+  description: string | null;
+  cover_image_url: string | null;
+  total_copies: number;
+  available_copies: number;
+  shelf_location: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface DbLibraryMember {
+  id: string;
+  user_id: string;
+  membership_type: 'student' | 'faculty' | 'staff';
+  max_books_allowed: number;
+  borrow_duration_days: number;
+  joined_at: string;
+  is_active: boolean;
+  users?: { name: string; email: string } | DbUser;
+}
+
+export interface DbLibraryBorrowing {
+  id: string;
+  member_id: string;
+  book_id: string;
+  borrowed_at: string;
+  due_at: string;
+  returned_at: string | null;
+  renewed_count: number;
+  status: 'active' | 'returned' | 'overdue' | 'lost';
+  processed_by: string | null;
+  library_books?: { title: string; author: string } | DbLibraryBook;
+  library_members?: { membership_type: string } | DbLibraryMember;
+  processor?: { name: string } | DbUser;
+}
+
+export interface DbLibraryReservation {
+  id: string;
+  member_id: string;
+  book_id: string;
+  reserved_at: string;
+  expires_at: string;
+  status: 'pending' | 'fulfilled' | 'expired' | 'cancelled';
+  fulfilled_borrowing_id: string | null;
+  library_books?: { title: string; author: string } | DbLibraryBook;
+  library_members?: { membership_type: string } | DbLibraryMember;
+}
+
+export interface DbLibraryFine {
+  id: string;
+  borrowing_id: string | null;
+  member_id: string;
+  amount: number;
+  reason: 'overdue' | 'damaged' | 'lost';
+  status: 'pending' | 'paid' | 'waived';
+  created_at: string;
+  paid_at: string | null;
+  waived_by: string | null;
+  library_members?: { membership_type: string } | DbLibraryMember;
+  waiving_user?: { name: string } | DbUser;
+}

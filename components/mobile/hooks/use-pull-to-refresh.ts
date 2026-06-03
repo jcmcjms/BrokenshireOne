@@ -31,6 +31,7 @@ export function usePullToRefresh({
   const [pullDistance, setPullDistance] = useState(0)
   const startY = useRef(0)
   const pulling = useRef(false)
+  const pullDistanceRef = useRef(0)
 
   const handleTouchStart = useCallback((e: Event) => {
     const touchEvent = e as TouchEvent
@@ -49,28 +50,33 @@ export function usePullToRefresh({
     const diff = currentY - startY.current
     if (diff < 0) {
       setPullDistance(0)
+      pullDistanceRef.current = 0
       return
     }
     // Resistive factor: real pull = sqrt(diff) * 3 for natural feel
     const distance = Math.min(Math.sqrt(diff) * 3, 120)
+    pullDistanceRef.current = distance
     setPullDistance(distance)
   }, [])
 
   const handleTouchEnd = useCallback(async () => {
     if (!pulling.current) return
     pulling.current = false
-    if (pullDistance >= threshold) {
+    const distance = pullDistanceRef.current
+    if (distance >= threshold) {
       setRefreshing(true)
       try {
         await onRefresh()
       } finally {
         setRefreshing(false)
         setPullDistance(0)
+        pullDistanceRef.current = 0
       }
     } else {
       setPullDistance(0)
+      pullDistanceRef.current = 0
     }
-  }, [pullDistance, threshold, onRefresh])
+  }, [threshold, onRefresh])
 
   useEffect(() => {
     const el = containerRef?.current ?? document

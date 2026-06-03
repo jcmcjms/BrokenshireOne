@@ -58,9 +58,7 @@ export default function MobileManagerDashboard() {
     )
   }
 
-  const lowStockTotal = stats?.low_stock_items && typeof stats.low_stock_items === "object"
-    ? (stats.low_stock_items as any).total ?? 0
-    : 0
+  const lowStockTotal = stats?.low_stock_items?.total ?? 0
 
   const dateLabel = new Date(selectedDate + "T00:00:00").toLocaleDateString("en-US", {
     weekday: "short",
@@ -110,18 +108,18 @@ export default function MobileManagerDashboard() {
         />
       }
     >
-      {typeof stats?.low_stock_items === "object" && stats?.low_stock_items != null && (stats.low_stock_items as any).total > 0 && (
+      {stats?.low_stock_items && stats.low_stock_items.total > 0 && (
         <Alert variant="destructive" className="py-2">
           <WarningCircle className="size-4" />
           <AlertTitle className="text-xs">Low Stock Alert</AlertTitle>
           <AlertDescription className="flex flex-col gap-0.5 text-[10px]">
             <span>
-              {(stats.low_stock_items as any).total} item{(stats.low_stock_items as any).total !== 1 ? "s are" : " is"} running low.
+              {stats.low_stock_items.total} item{stats.low_stock_items.total !== 1 ? "s are" : " is"} running low.
             </span>
             <span className="opacity-80">
-              {(stats.low_stock_items as any).inventory > 0 && `${(stats.low_stock_items as any).inventory} inventory item${(stats.low_stock_items as any).inventory !== 1 ? "s" : ""}`}
-              {(stats.low_stock_items as any).inventory > 0 && (stats.low_stock_items as any).menu_items > 0 && " · "}
-              {(stats.low_stock_items as any).menu_items > 0 && `${(stats.low_stock_items as any).menu_items} menu item${(stats.low_stock_items as any).menu_items !== 1 ? "s" : ""}`}
+              {stats.low_stock_items.inventory > 0 && `${stats.low_stock_items.inventory} inventory item${stats.low_stock_items.inventory !== 1 ? "s" : ""}`}
+              {stats.low_stock_items.inventory > 0 && stats.low_stock_items.menu_items > 0 && " · "}
+              {stats.low_stock_items.menu_items > 0 && `${stats.low_stock_items.menu_items} menu item${stats.low_stock_items.menu_items !== 1 ? "s" : ""}`}
             </span>
           </AlertDescription>
         </Alert>

@@ -23,11 +23,13 @@ async function getCurrentSessionVersion(userId: string): Promise<number> {
 }
 
 const roleRoutes: Record<string, string[]> = {
-  admin: ['/dashboard/admin'],
+  admin: ['/dashboard/admin', '/dashboard'],
   manager: ['/dashboard/manager', '/dashboard'],
   staff: ['/dashboard/staff', '/dashboard'],
   faculty: ['/dashboard/faculty', '/dashboard', '/dashboard/order'],
   student: ['/dashboard/student', '/dashboard', '/dashboard/order'],
+  librarian: ['/dashboard/library', '/dashboard'],
+  viewer: ['/dashboard', '/dashboard'],
 };
 
 export async function proxy(request: NextRequest) {
@@ -86,6 +88,8 @@ export async function proxy(request: NextRequest) {
         staff: '/dashboard/staff',
         faculty: '/dashboard/faculty',
         student: '/dashboard/student',
+        librarian: '/dashboard/library',
+        viewer: '/dashboard',
       };
       return NextResponse.redirect(new URL(roleDashboard[role] || '/dashboard', request.url));
     }

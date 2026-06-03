@@ -45,3 +45,4 @@ next-env.d.ts
 
 # documentation / design specs (local only)
 /docs/
+react-memory.md

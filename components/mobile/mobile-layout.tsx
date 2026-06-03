@@ -16,6 +16,7 @@ import {
 import { SignOut } from "@phosphor-icons/react"
 import type { User } from "@/types"
 import { NotificationBellWidget } from "@/components/notifications/notification-bell-widget"
+import { getDashboardTitle } from "@/lib/titles"
 import { BottomNav } from "./bottom-nav"
 import { MoreMenu } from "./more-menu"
 interface MobileTab {
@@ -47,32 +48,14 @@ export function MobileLayout({ user, children, overflowItems, onLogout }: Mobile
     }
   }
 
-  // Extract page title from pathname
-  const getTitle = () => {
-    const p = pathname
-    if (p === "/dashboard/admin") return "Admin"
-    if (p === "/dashboard/manager") return "Manager"
-    if (p === "/dashboard/staff") return "Staff"
-    if (p === "/dashboard/faculty") return "Faculty"
-    if (p === "/dashboard/student") return "Student"
-    if (p === "/dashboard/order") return "Place Order"
-    if (p.includes("/student/menu") || p.includes("/faculty/menu")) return "Menu"
-    if (p.includes("/manager/menu") || p.includes("/admin") && p.includes("/menu")) return "Menu"
-    if (p.includes("/orders")) return "Orders"
-    if (p.includes("/credits")) return "Credits"
-    if (p.includes("/inventory")) return "Inventory"
-    if (p.includes("/salary")) return "Salary"
-    if (p.includes("/reports")) return "Reports"
-    if (p.includes("/users")) return "Users"
-    if (p.includes("/settings")) return "Settings"
-    return "Dashboard"
-  }
+  // Page title derived from the shared title function
+  const pageTitle = getDashboardTitle(pathname)
 
   return (
     <div className="flex min-h-screen flex-col bg-background">
       {/* Mobile header */}
       <header className="fixed top-0 left-0 right-0 z-40 flex h-12 items-center justify-between border-b border-border bg-background px-4">
-        <h1 className="text-sm font-medium">{getTitle()}</h1>
+        <h1 className="text-sm font-medium">{pageTitle}</h1>
 
         <div className="flex items-center gap-1">
           <NotificationBellWidget />

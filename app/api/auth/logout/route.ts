@@ -1,19 +1,13 @@
 import { NextResponse } from 'next/server';
+import { apiHandler } from '@/lib/api/api-handler';
 import { clearSession } from '@/lib/auth/session';
 import type { ApiResponse } from '@/types';
 
-export async function POST() {
-  try {
-    await clearSession();
+export const POST = apiHandler(async () => {
+  await clearSession();
 
-    return NextResponse.json<ApiResponse>({
-      success: true,
-      message: 'Logged out successfully',
-    });
-  } catch (error) {
-    return NextResponse.json<ApiResponse>(
-      { success: false, error: 'Failed to logout' },
-      { status: 500 },
-    );
-  }
-}
+  return NextResponse.json<ApiResponse>({
+    success: true,
+    message: 'Logged out successfully',
+  });
+}, { requireAuth: false });

@@ -1,68 +1,34 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getSession } from '@/lib/auth/session';
-import { supabase } from '@/lib/supabase/client';
+import { apiHandler } from '@/lib/api/api-handler';
+import { db } from '@/lib/supabase/helpers';
+import { badRequestResponse } from '@/lib/api/utils';
 import type { ApiResponse } from '@/types';
 
-export async function GET(_request: NextRequest) {
-  try {
-    const session = await getSession();
-    if (!session) {
-      return NextResponse.json<ApiResponse>(
-        { success: false, error: 'Not authenticated' },
-        { status: 401 },
-      );
-    }
+export const GET = apiHandler(async (_request, _params, session) => {
+  const { data, error } = await db('notifications')
+    .select('*')
+    .eq('user_id', session.user_id)
+    .order('created_at', { ascending: false })
+    .limit(50);
 
-    const { data, error } = await (supabase as any)
-      .from('notifications')
-      .select('*')
+  if (error) throw error;
+
+  return NextResponse.json<ApiResponse>({ success: true, data: data ?? [] });
+});
+
+export const PATCH = apiHandler(async (request: NextRequest, _params, session) => {
+  const { read_all } = await request.json();
+
+  if (read_all) {
+    const { error } = await db('notifications')
+      .update({ read: true })
       .eq('user_id', session.user_id)
-      .order('created_at', { ascending: false })
-      .limit(50);
+      .eq('read', false);
 
     if (error) throw error;
 
-    return NextResponse.json<ApiResponse>({ success: true, data: data ?? [] });
-  } catch (error) {
-    return NextResponse.json<ApiResponse>(
-      { success: false, error: 'Failed to fetch notifications' },
-      { status: 500 },
-    );
+    return NextResponse.json<ApiResponse>({ success: true, message: 'All marked as read' });
   }
-}
 
-export async function PATCH(request: NextRequest) {
-  try {
-    const session = await getSession();
-    if (!session) {
-      return NextResponse.json<ApiResponse>(
-        { success: false, error: 'Not authenticated' },
-        { status: 401 },
-      );
-    }
-
-    const { read_all } = await request.json();
-
-    if (read_all) {
-      const { error } = await (supabase as any)
-        .from('notifications')
-        .update({ read: true })
-        .eq('user_id', session.user_id)
-        .eq('read', false);
-
-      if (error) throw error;
-
-      return NextResponse.json<ApiResponse>({ success: true, message: 'All marked as read' });
-    }
-
-    return NextResponse.json<ApiResponse>(
-      { success: false, error: 'Invalid request' },
-      { status: 400 },
-    );
-  } catch (error) {
-    return NextResponse.json<ApiResponse>(
-      { success: false, error: 'Failed to update notifications' },
-      { status: 500 },
-    );
-  }
-}
+  return badRequestResponse('Invalid request');
+});

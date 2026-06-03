@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogClose } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -36,6 +36,22 @@ const emptyForm = {
 export default function AddItemDialog({ open, onOpenChange, editingItem, onSaved }: Props) {
   const [form, setForm] = useState(emptyForm)
   const [saving, setSaving] = useState(false)
+
+  // Populate form when editingItem changes (edit mode)
+  useEffect(() => {
+    if (editingItem) {
+      setForm({
+        name: editingItem.name,
+        category: editingItem.category,
+        unit: editingItem.unit,
+        quantity: editingItem.quantity.toString(),
+        min_stock_level: editingItem.min_stock_level.toString(),
+        unit_cost: editingItem.unit_cost?.toString() ?? "",
+      })
+    } else {
+      setForm(emptyForm)
+    }
+  }, [editingItem])
 
   const openDialog = (open: boolean) => {
     if (!open) {

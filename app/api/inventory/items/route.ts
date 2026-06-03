@@ -1,113 +1,63 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getSession } from '@/lib/auth/session';
-import { supabase } from '@/lib/supabase/client';
+import { apiHandler } from '@/lib/api/api-handler';
+import { db } from '@/lib/supabase/helpers';
 import { logAdminAction, AuditActions } from '@/lib/audit';
+import { badRequestResponse } from '@/lib/api/utils';
 import type { ApiResponse } from '@/types';
 
-export async function GET(request: NextRequest) {
-  try {
-    const session = await getSession();
-    if (!session) {
-      return NextResponse.json<ApiResponse>(
-        { success: false, error: 'Not authenticated' },
-        { status: 401 },
-      );
-    }
+export const GET = apiHandler(async (request: NextRequest) => {
+  const { searchParams } = new URL(request.url);
+  const category = searchParams.get('category') ?? undefined;
 
-    if (!session.permissions.includes('menu.view') && !session.permissions.includes('menu.manage')) {
-      return NextResponse.json<ApiResponse>(
-        { success: false, error: 'Forbidden' },
-        { status: 403 },
-      );
-    }
+  let query = db('inventory_items')
+    .select('*')
+    .order('name');
 
-    const { searchParams } = new URL(request.url);
-    const category = searchParams.get('category') ?? undefined;
-
-    let query = (supabase.from('inventory_items') as any)
-      .select('*')
-      .order('name');
-
-    if (category) {
-      query = query.eq('category', category);
-    }
-
-    const { data, error } = await query;
-    if (error) throw error;
-
-    return NextResponse.json<ApiResponse>({ success: true, data: data ?? [] });
-  } catch (error) {
-    return NextResponse.json<ApiResponse>(
-      { success: false, error: 'Failed to fetch inventory items' },
-      { status: 500 },
-    );
+  if (category) {
+    query = query.eq('category', category);
   }
-}
 
-export async function POST(request: NextRequest) {
-  try {
-    const session = await getSession();
-    if (!session) {
-      return NextResponse.json<ApiResponse>(
-        { success: false, error: 'Not authenticated' },
-        { status: 401 },
-      );
-    }
+  const { data, error } = await query;
+  if (error) throw error;
 
-    if (!session.permissions.includes('menu.manage')) {
-      return NextResponse.json<ApiResponse>(
-        { success: false, error: 'Forbidden' },
-        { status: 403 },
-      );
-    }
+  return NextResponse.json<ApiResponse>({ success: true, data: data ?? [] });
+}, { permissions: ['menu.view', 'menu.manage'] });
 
-    const { name, category, quantity, unit, min_stock_level, unit_cost } = await request.json();
+export const POST = apiHandler(async (request: NextRequest, _params, session) => {
+  const { name, category, quantity, unit, min_stock_level, unit_cost } = await request.json();
 
-    if (!name || !category || !unit) {
-      return NextResponse.json<ApiResponse>(
-        { success: false, error: 'name, category, and unit are required' },
-        { status: 400 },
-      );
-    }
+  if (!name || !category || !unit) {
+    return badRequestResponse('name, category, and unit are required');
+  }
 
-    const validCategories = ['produce', 'meat', 'dairy', 'dry_goods', 'beverage', 'other'];
-    if (!validCategories.includes(category)) {
-      return NextResponse.json<ApiResponse>(
-        { success: false, error: `Invalid category. Must be one of: ${validCategories.join(', ')}` },
-        { status: 400 },
-      );
-    }
+  const validCategories = ['produce', 'meat', 'dairy', 'dry_goods', 'beverage', 'other'];
+  if (!validCategories.includes(category)) {
+    return badRequestResponse(`Invalid category. Must be one of: ${validCategories.join(', ')}`);
+  }
 
-    const db = supabase.from('inventory_items') as any;
-    const { data, error } = await db
-      .insert({
-        name,
-        category,
-        quantity: quantity ?? 0,
-        unit,
-        min_stock_level: min_stock_level ?? 0,
-        unit_cost: unit_cost ?? null,
-      })
-      .select()
-      .single();
-
-    if (error) throw error;
-
-    await logAdminAction(session, AuditActions.INVENTORY_ADJUST, 'inventory_item', data?.id ?? null, {
+  const { data, error } = await db('inventory_items')
+    .insert({
       name,
       category,
       quantity: quantity ?? 0,
       unit,
-    }).catch(() => {});
+      min_stock_level: min_stock_level ?? 0,
+      unit_cost: unit_cost ?? null,
+    })
+    .select()
+    .single();
 
-    return NextResponse.json<ApiResponse>(
-      { success: true, data },
-      { status: 201 },
-    );
-  } catch (error) {
-    return NextResponse.json<ApiResponse>(
-      { success: false, error: 'Failed to create inventory item' },
-      { status: 500 },
-    );
-  }
-}
+  if (error) throw error;
+
+  logAdminAction(session, AuditActions.INVENTORY_ADJUST, 'inventory_item', data?.id ?? null, {
+    name,
+    category,
+    quantity: quantity ?? 0,
+    unit,
+  });
+
+  return NextResponse.json<ApiResponse>(
+    { success: true, data },
+    { status: 201 },
+  );
+}, { permissions: ['menu.manage'] });

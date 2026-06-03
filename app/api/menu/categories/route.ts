@@ -1,81 +1,40 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getSession } from '@/lib/auth/session';
-import { supabase } from '@/lib/supabase/client';
+import { apiHandler } from '@/lib/api/api-handler';
+import { db } from '@/lib/supabase/helpers';
 import { logAdminAction, AuditActions } from '@/lib/audit';
+import { badRequestResponse } from '@/lib/api/utils';
 import type { ApiResponse } from '@/types';
 
-export async function GET() {
-  try {
-    const session = await getSession();
-    if (!session) {
-      return NextResponse.json<ApiResponse>(
-        { success: false, error: 'Not authenticated' },
-        { status: 401 },
-      );
-    }
+export const GET = apiHandler(async () => {
+  const { data, error } = await db('menu_categories')
+    .select('*')
+    .order('sort_order', { ascending: true });
 
-    const db = supabase.from('menu_categories') as any;
-    const { data, error } = await db
-      .select('*')
-      .order('sort_order', { ascending: true });
+  if (error) throw error;
 
-    if (error) throw error;
+  return NextResponse.json<ApiResponse>({ success: true, data });
+});
 
-    return NextResponse.json<ApiResponse>({ success: true, data });
-  } catch (error) {
-    return NextResponse.json<ApiResponse>(
-      { success: false, error: 'Failed to fetch categories' },
-      { status: 500 },
-    );
+export const POST = apiHandler(async (request: NextRequest, _params, session) => {
+  const { name, sort_order } = await request.json();
+
+  if (!name) {
+    return badRequestResponse('Name is required');
   }
-}
 
-export async function POST(request: NextRequest) {
-  try {
-    const session = await getSession();
-    if (!session) {
-      return NextResponse.json<ApiResponse>(
-        { success: false, error: 'Not authenticated' },
-        { status: 401 },
-      );
-    }
+  const { data, error } = await db('menu_categories')
+    .insert({ name, sort_order: sort_order ?? 0 })
+    .select()
+    .single();
 
-    if (!session.permissions.includes('menu.manage')) {
-      return NextResponse.json<ApiResponse>(
-        { success: false, error: 'Forbidden' },
-        { status: 403 },
-      );
-    }
+  if (error) throw error;
 
-    const { name, sort_order } = await request.json();
+  logAdminAction(session, AuditActions.MENU_CREATE, 'menu_category', data?.id ?? null, {
+    name,
+  });
 
-    if (!name) {
-      return NextResponse.json<ApiResponse>(
-        { success: false, error: 'Name is required' },
-        { status: 400 },
-      );
-    }
-
-    const dbInsert = supabase.from('menu_categories') as any;
-    const { data, error } = await dbInsert
-      .insert({ name, sort_order: sort_order ?? 0 })
-      .select()
-      .single();
-
-    if (error) throw error;
-
-    await logAdminAction(session, AuditActions.MENU_CREATE, 'menu_category', data?.id ?? null, {
-      name,
-    }).catch(() => {});
-
-    return NextResponse.json<ApiResponse>(
-      { success: true, data },
-      { status: 201 },
-    );
-  } catch (error) {
-    return NextResponse.json<ApiResponse>(
-      { success: false, error: 'Failed to create category' },
-      { status: 500 },
-    );
-  }
-}
+  return NextResponse.json<ApiResponse>(
+    { success: true, data },
+    { status: 201 },
+  );
+}, { permissions: ['menu.manage'] });

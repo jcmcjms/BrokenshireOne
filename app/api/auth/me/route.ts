@@ -1,36 +1,20 @@
 import { NextResponse } from 'next/server';
-import { getSession } from '@/lib/auth/session';
+import { apiHandler } from '@/lib/api/api-handler';
 import { getUserById } from '@/lib/supabase/queries';
+import { notFoundResponse } from '@/lib/api/utils';
 import type { ApiResponse } from '@/types';
 
-export async function GET() {
-  try {
-    const session = await getSession();
-    if (!session) {
-      return NextResponse.json<ApiResponse>(
-        { success: false, error: 'Not authenticated' },
-        { status: 401 },
-      );
-    }
+export const GET = apiHandler(async (_request, _params, session) => {
+  const user = await getUserById(session.user_id);
 
-    const user = await getUserById(session.user_id);
-    if (!user) {
-      return NextResponse.json<ApiResponse>(
-        { success: false, error: 'User not found' },
-        { status: 404 },
-      );
-    }
-
-    const { password_hash, roles, ...safeUser } = user as any;
-
-    return NextResponse.json<ApiResponse>({
-      success: true,
-      data: { ...safeUser, role: session.role, permissions: session.permissions },
-    });
-  } catch (error) {
-    return NextResponse.json<ApiResponse>(
-      { success: false, error: 'Failed to fetch user' },
-      { status: 500 },
-    );
+  if (!user) {
+    return notFoundResponse('User');
   }
-}
+
+  const { password_hash, roles, ...safeUser } = user as any;
+
+  return NextResponse.json<ApiResponse>({
+    success: true,
+    data: { ...safeUser, role: session.role, permissions: session.permissions },
+  });
+});

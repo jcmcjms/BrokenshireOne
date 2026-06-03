@@ -20,6 +20,9 @@ import type { User, ApiResponse } from "@/types"
 import { NotificationProvider, useNotifications } from "@/components/notifications/notification-provider"
 import { NotificationBellWidget } from "@/components/notifications/notification-bell-widget"
 import { useMobile } from "@/components/mobile/hooks/use-mobile"
+import { getDashboardTitle } from "@/lib/titles"
+import { getNavItemsForModule, getActiveModule, getModulesForRole, MODULE_REGISTRY } from "@/lib/modules"
+import { ModuleTabBar } from "@/components/module-tab-bar"
 import { MobileLayout } from "@/components/mobile/mobile-layout"
 import { mobileNavConfig } from "@/components/mobile/bottom-nav"
 import { motion } from "motion/react"
@@ -135,37 +138,23 @@ const navConfig: Record<string, NavItem[]> = {
   ],
 }
 
-function getPageTitle(pathname: string): string {
-  if (pathname === "/dashboard/admin") return "Admin Dashboard"
-  if (pathname === "/dashboard/manager") return "Manager Dashboard"
-  if (pathname === "/dashboard/staff") return "Staff Counter"
-  if (pathname === "/dashboard/faculty") return "Faculty Dashboard"
-  if (pathname === "/dashboard/student") return "Student Dashboard"
-  if (pathname.includes("/users")) return "Users"
-  if (pathname.includes("/student/menu") || pathname.includes("/faculty/menu")) return "Menu"
-  if (pathname.includes("/menu")) return "Menu Management"
-  if (pathname.includes("/orders")) return "Orders"
-  if (pathname.includes("/credits")) return "Credits"
-  if (pathname.includes("/inventory")) return "Inventory Management"
-  if (pathname.includes("/salary")) return "Salary Deductions"
-  if (pathname.includes("/reports")) return "Reports"
-  if (pathname.includes("/settings")) return "Settings"
-  return "Dashboard"
-}
-
 function SidebarContent({
   navItems,
   pathname,
   user,
+  activeModule,
   onNavigate,
   onLogout,
 }: {
   navItems: NavItem[]
   pathname: string
   user: User | null
+  activeModule?: string | null
   onNavigate?: () => void
   onLogout?: () => void
 }) {
+  const activeModDef = activeModule ? MODULE_REGISTRY[activeModule] : null
+  const ModuleIcon = activeModDef?.icon || null
   const router = useRouter()
 
   async function handleLogout() {
@@ -181,9 +170,9 @@ function SidebarContent({
     <div className="flex h-full flex-col">
       <div className="flex h-12 items-center gap-2 border-b border-border px-3">
         <div className="flex size-7 items-center justify-center bg-primary text-primary-foreground">
-          <span className="text-[10px] font-bold">BO</span>
+          {ModuleIcon ? <ModuleIcon className="size-4" /> : <span className="text-[10px] font-bold">BO</span>}
         </div>
-        <span className="text-xs font-medium">BrokenshireOne</span>
+        <span className="text-xs font-medium">{activeModDef?.label || "BrokenshireOne"}</span>
       </div>
 
       <nav className="flex-1 space-y-0.5 p-2">
@@ -261,7 +250,10 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   }, [router])
 
   const role = user?.role
-  const navItems = role ? navConfig[role] || [] : []
+  const activeModule = getActiveModule(pathname)
+  const navItems = activeModule && role
+    ? getNavItemsForModule(activeModule, role, user?.permissions ?? [])
+    : role ? navConfig[role] || [] : []
 
   async function handleLogout() {
     await fetch("/api/auth/logout", { method: "POST" })
@@ -298,7 +290,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     <NotificationProvider user={user}>
       <div className="flex min-h-screen relative">
         <aside className="hidden w-48 shrink-0 border-r border-border bg-sidebar md:flex md:flex-col">
-          <SidebarContent navItems={navItems} pathname={pathname} user={user} onLogout={handleLogout} />
+          <SidebarContent navItems={navItems} pathname={pathname} user={user} activeModule={activeModule} onLogout={handleLogout} />
         </aside>
 
         <div className="flex flex-1 flex-col">
@@ -315,12 +307,13 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                     navItems={navItems}
                     pathname={pathname}
                     user={user}
+                    activeModule={activeModule}
                     onNavigate={() => setMobileOpen(false)}
                     onLogout={handleLogout}
                   />
                 </SheetContent>
               </Sheet>
-              <h1 className="text-sm font-medium">{getPageTitle(pathname)}</h1>
+              <h1 className="text-sm font-medium">{getDashboardTitle(pathname)}</h1>
             </div>
 
             <div className="flex items-center gap-2">
@@ -352,6 +345,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
               </DropdownMenu>
             </div>
           </header>
+
+          <ModuleTabBar user={user} />
 
           <main className="flex-1 overflow-auto p-4 md:p-6">{children}</main>
         </div>

@@ -1,64 +1,39 @@
 import { NextResponse } from 'next/server';
-import { getSession } from '@/lib/auth/session';
-import { supabase } from '@/lib/supabase/client';
+import { apiHandler } from '@/lib/api/api-handler';
+import { db } from '@/lib/supabase/helpers';
+import { flattenRelation } from '@/lib/api/utils';
 import type { ApiResponse, LowStockSummary } from '@/types';
 
-export async function GET() {
-  try {
-    const session = await getSession();
-    if (!session) {
-      return NextResponse.json<ApiResponse>(
-        { success: false, error: 'Not authenticated' },
-        { status: 401 },
-      );
-    }
+export const GET = apiHandler(async () => {
+  // Get low stock inventory items (quantity < min_stock_level)
+  const { data: allInventory, error: invError } = await db('inventory_items')
+    .select('*')
+    .order('name');
 
-    if (!session.permissions.includes('menu.view') && !session.permissions.includes('menu.manage')) {
-      return NextResponse.json<ApiResponse>(
-        { success: false, error: 'Forbidden' },
-        { status: 403 },
-      );
-    }
+  if (invError) throw invError;
 
-    // Get low stock inventory items (quantity < min_stock_level)
-    const invDb = supabase.from('inventory_items') as any;
-    const { data: allInventory, error: invError } = await invDb
-      .select('*')
-      .order('name');
+  const lowStockInventory = (allInventory ?? []).filter(
+    (item: any) => item.min_stock_level > 0 && item.quantity < item.min_stock_level,
+  );
 
-    if (invError) throw invError;
+  // Get low stock menu items (stock_quantity > 0 and < 5)
+  const { data: lowStockMenuItems, error: menuError } = await db('menu_items')
+    .select('*, menu_categories(name)')
+    .gt('stock_quantity', 0)
+    .lt('stock_quantity', 5)
+    .order('stock_quantity', { ascending: true });
 
-    const lowStockInventory = (allInventory ?? []).filter(
-      (item: any) => item.min_stock_level > 0 && item.quantity < item.min_stock_level,
-    );
+  if (menuError) throw menuError;
 
-    // Get low stock menu items (stock_quantity > 0 and < 5)
-    const menuDb = supabase.from('menu_items') as any;
-    const { data: lowStockMenuItems, error: menuError } = await menuDb
-      .select('*, menu_categories(name)')
-      .gt('stock_quantity', 0)
-      .lt('stock_quantity', 5)
-      .order('stock_quantity', { ascending: true });
+  const formattedMenuItems = (lowStockMenuItems ?? []).map((item: any) =>
+    flattenRelation(item, 'menu_categories', 'category_name'),
+  );
 
-    if (menuError) throw menuError;
+  const summary: LowStockSummary = {
+    inventory: lowStockInventory,
+    menu_items: formattedMenuItems,
+    total: lowStockInventory.length + formattedMenuItems.length,
+  };
 
-    const formattedMenuItems = (lowStockMenuItems ?? []).map((item: any) => ({
-      ...item,
-      category_name: item.menu_categories?.name ?? null,
-      menu_categories: undefined,
-    }));
-
-    const summary: LowStockSummary = {
-      inventory: lowStockInventory,
-      menu_items: formattedMenuItems,
-      total: lowStockInventory.length + formattedMenuItems.length,
-    };
-
-    return NextResponse.json<ApiResponse>({ success: true, data: summary });
-  } catch (error) {
-    return NextResponse.json<ApiResponse>(
-      { success: false, error: 'Failed to fetch low stock items' },
-      { status: 500 },
-    );
-  }
-}
+  return NextResponse.json<ApiResponse>({ success: true, data: summary });
+}, { permissions: ['menu.view', 'menu.manage'] });
